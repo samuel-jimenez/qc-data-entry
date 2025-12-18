@@ -1,0 +1,21 @@
+[package]
+name = "qc_data_entry"
+version = "0.1.0"
+edition = "2024"
+
+
+# [dependencies]
+# nwg = {version = "^1.0.12", package = "native-windows-gui"}
+# native-windows-derive = "^1.0.3"
+
+# [patch.crates-io]
+# native-windows-gui = { git = 'https://github.com/samuel-jimenez/native-windows-gui.git' }
+# native-windows-derive = { git = 'https://github.com/samuel-jimenez/native-windows-gui.git' }
+
+[dependencies]
+# nwg = { git = 'https://github.com/samuel-jimenez/native-windows-gui.git' , package = "native-windows-gui"}
+# native-windows-derive = { git = 'https://github.com/samuel-jimenez/native-windows-gui.git' }
+nwg = { path = 'c:/Users/QC Lab/Documents/rust/native-windows-gui/native-windows-gui' , package = "native-windows-gui"}
+native-windows-derive = { path = 'c:/Users/QC Lab/Documents/rust/native-windows-gui/native-windows-derive' }
+# time = "0.3.44"
+chrono = "0.4.42"
