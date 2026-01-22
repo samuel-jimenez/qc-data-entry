@@ -1,6 +1,6 @@
 // #![windows_subsystem = "windows"]
-#![allow(unused_imports)]
-#![allow(unused)]
+// #![allow(unused_imports)]
+// #![allow(unused)]
 // #![allow(dead_code)]
 // #![warn(unused_imports)]
 // #![warn(unused)]
@@ -13,109 +13,73 @@
 extern crate native_windows_derive as nwd;
 
 mod clock;
-use clock::ClockBox;
+mod constants;
+mod convert;
+mod formats;
+mod fr_product_view;
+mod number_units_edit;
+mod ob_product_view;
+mod qc_product_view;
+mod range;
+mod wb_product_view;
 
-use std::cell::RefCell;
-use std::cmp::min;
-use std::io::Write;
-use std::rc::Rc;
-// use std::time;
+use nwd::NwgUi;
+use nwg::{
+    taffy::{
+        geometry::Size,
+        style::{Dimension as D, FlexDirection},
+        style_helpers::auto,
+    },
+    NativeUi,
+};
 
-// use chrono::{DateTime, Local, TimeDelta, Utc,seconds};
-use chrono::{DateTime, TimeDelta, Utc};
-use nwd::{NwgPartial, NwgUi};
-use nwg::{CharEffects, CharFormat, EventData, NativeUi};
-
-// Flexbox style
-use nwg::taffy::{
-    geometry::{Rect, Size},
-    style::{Dimension as D, FlexDirection, FlexWrap},
+use crate::{
+    clock::ClockBox, constants::*, fr_product_view::FRPanelView,
+    number_units_edit::NumberUnitsEdit, ob_product_view::OBPanelView, range::*,
+    wb_product_view::WBPanelView,
 };
 
 const PC_10: D = D::percent(0.1);
 const PC_25: D = D::percent(0.25);
 const PC_50: D = D::percent(0.5);
 const PC_33: D = D::percent(0.33);
-const PC_67: D = D::percent(0.67);
-const PC_100: D = D::percent(1.0);
-
-const PT_10: D = D::length(10.0);
-const PT_5: D = D::length(5.0);
-const PADDING: Rect<D> = Rect {
-    left: PT_10,
-    right: PT_10,
-    top: PT_10,
-    bottom: PT_10,
-};
-const MARGIN: Rect<D> = Rect {
-    left: PT_5,
-    right: PT_5,
-    top: PT_5,
-    bottom: PT_5,
-};
-
-const LAEBL_SIZE: Size<D> = Size {
-    // width: D::auto(),
-    width: D::percent(0.13),
-    height: D::auto(),
-    // height: PC_33,
-};
-
-const SD_SIZE: Size<D> = Size {
-    // width: D::auto(),
-    width: D::percent(0.2),
-    height: D::auto(),
-    // height: PC_33,
-};
-
-const ROW_1_3: Size<D> = Size {
-    width: D::auto(),
-    height: PC_33,
-};
-const ROW_2_3: Size<D> = Size {
-    width: D::auto(),
-    height: PC_67,
-};
 
 const COL_1_3: Size<D> = Size {
     width: PC_33,
-    height: D::auto(),
-};
-const COL_2_3: Size<D> = Size {
-    width: PC_67,
-    height: D::auto(),
+    height: auto(),
 };
 
 const ROW_10: Size<D> = Size {
-    width: D::auto(),
+    width: auto(),
     height: PC_10,
 };
 
 const ROW_25: Size<D> = Size {
-    width: D::auto(),
+    width: auto(),
     height: PC_25,
 };
 
 const ROW_50: Size<D> = Size {
-    width: D::auto(),
+    width: auto(),
     height: PC_50,
 };
 
-const COL_10: Size<D> = Size {
-    width: PC_10,
-    height: D::auto(),
-};
-
-// #[derive(Default, NwgPartial)]
 #[derive(Default, NwgUi)]
 pub struct QCApp {
+    // Resources
+    #[nwg_resource]
+    embed: nwg::EmbedResource,
+
+    #[nwg_resource(source_embed: Some(&data.embed), source_embed_str: Some("MAINICON"))]
+    window_icon: nwg::Icon,
+
     // Window and layout
-    // #[nwg_control(size: (300, 115), position: (300, 300), title: "Basic example", flags: "WINDOW|VISIBLE")]
-    #[nwg_control(size: (1400, 800), position: (300, 300), title: "QC Data Entry", flags: "MAIN_WINDOW|VISIBLE")]
+    #[nwg_control(size: (1400, 800), position: (300, 300), title: "QC Data Entry", flags: "MAIN_WINDOW", icon:  Some(&data.window_icon))]
     #[nwg_events( OnInit: [QCApp::setup], OnWindowClose: [QCApp::say_goodbye] )]
     window: nwg::Window,
 
-    // #[nwg_layout(parent: window, flex_direction: FlexDirection::Column, padding: PADDING,    flex_wrap:FlexWrap::Wrap)]
+    // #[nwg_layout(parent: window, flex_direction: FlexDirection::Column, padding: PADDING)]
+    // window_layout: nwg::FlexboxLayout,
     #[nwg_layout(parent: window, flex_direction: FlexDirection::Column)]
     // #[nwg_layout(parent: window, flex_direction: FlexDirection::Column, padding: PADDING,    flex_wrap:FlexWrap::NoWrap)]
     // #[nwg_layout(parent: window,)]
@@ -134,7 +98,7 @@ pub struct QCApp {
     // #[nwg_partial(parent: window_layout,    )]
     // #[nwg_layout_item(layout: window_layout,
     // // size:Size {
-    // //     width: D::auto(),
+    // //     width: auto(),
     // //
     // //     // width: D::length(200.0),
     // //                   height: D::length(200.0),
@@ -144,20 +108,18 @@ pub struct QCApp {
     top_layout: nwg::FlexboxLayout,
 
     // #[nwg_layout(parent: window, flex_direction: FlexDirection::Column, align_items: stretch::style::AlignItems::FlexStart)]
+    // #[nwg_layout(parent: window, flex_direction: FlexDirection::Column)]
+    // #[nwg_layout_item(layout: top_layout, size:LAEBL_SIZE)]
+    // label_0_layout: nwg::FlexboxLayout,
     #[nwg_layout(parent: window, flex_direction: FlexDirection::Column)]
-    #[nwg_layout_item(layout: top_layout, size:LAEBL_SIZE)]
-    label_0_layout: nwg::FlexboxLayout,
-
-    #[nwg_layout(parent: window, flex_direction: FlexDirection::Column)]
-    #[nwg_layout_item(layout: top_layout, size:SD_SIZE)]
+    #[nwg_layout_item(layout: top_layout, size:COL_1_3)]
     field_0_layout: nwg::FlexboxLayout,
 
+    // #[nwg_layout(parent: window, flex_direction: FlexDirection::Column)]
+    // #[nwg_layout_item(layout: top_layout, size:LAEBL_SIZE)]
+    // label_1_layout: nwg::FlexboxLayout,
     #[nwg_layout(parent: window, flex_direction: FlexDirection::Column)]
-    #[nwg_layout_item(layout: top_layout, size:LAEBL_SIZE)]
-    label_1_layout: nwg::FlexboxLayout,
-
-    #[nwg_layout(parent: window, flex_direction: FlexDirection::Column)]
-    #[nwg_layout_item(layout: top_layout, size:SD_SIZE)]
+    #[nwg_layout_item(layout: top_layout, size:COL_1_3)]
     field_1_layout: nwg::FlexboxLayout,
     /*
     #[nwg_layout(parent: window, flex_direction: FlexDirection::Row)]
@@ -189,49 +151,25 @@ pub struct QCApp {
 
     */
     // // Controls
-    #[nwg_control(text: "Product", v_align: VTextAlign::Top)]
-    #[nwg_layout_item(layout: label_0_layout)]
-    product_name_label: nwg::Label,
-
-    #[nwg_control]
+    #[nwg_control(label: "Product", focus: true)]
     #[nwg_layout_item(layout: field_0_layout)]
-    product_name_field: nwg::ComboBox<&'static str>,
+    product_name_field: nwg::LabeledCombo<&'static str>,
 
-    #[nwg_control(text: "Customer Name", v_align: VTextAlign::Top)]
-    #[nwg_layout_item(layout: label_1_layout)]
-    customer_name_label: nwg::Label,
-
-    #[nwg_control]
+    #[nwg_control(label: "Customer Name")]
     #[nwg_layout_item(layout: field_1_layout)]
-    customer_name_field: nwg::ComboBox<&'static str>,
+    customer_name_field: nwg::LabeledCombo<&'static str>,
 
-    #[nwg_control(text: "Lot Number", v_align: VTextAlign::Top)]
-    #[nwg_layout_item(layout: label_0_layout)]
-    lot_name_label: nwg::Label,
-
-    #[nwg_control]
+    #[nwg_control(label: "Lot Number")]
     #[nwg_layout_item(layout: field_0_layout)]
-    lot_name_field: nwg::ComboBox<&'static str>,
+    lot_name_field: nwg::LabeledCombo<&'static str>,
 
-    #[nwg_control(text: "Sample Point", v_align: VTextAlign::Top)]
-    #[nwg_layout_item(layout: label_1_layout)]
-    sample_name_label: nwg::Label,
-
-    #[nwg_control]
+    #[nwg_control(label: "Sample Point")]
     #[nwg_layout_item(layout: field_1_layout)]
-    sample_name_field: nwg::ComboBox<&'static str>,
+    sample_name_field: nwg::LabeledCombo<&'static str>,
 
-    #[nwg_control(text: "Tester", v_align: VTextAlign::Top)]
-    #[nwg_layout_item(layout: label_0_layout)]
-    tester_name_label: nwg::Label,
-
-    #[nwg_control]
+    #[nwg_control(label: "Tester")]
     #[nwg_layout_item(layout: field_0_layout)]
-    tester_name_field: nwg::ComboBox<&'static str>,
-
-    #[nwg_control(text: "", v_align: VTextAlign::Top)]
-    #[nwg_layout_item(layout: label_1_layout)]
-    blank_name_label: nwg::Label,
+    tester_name_field: nwg::LabeledCombo<&'static str>,
 
     #[nwg_control(text: "")]
     #[nwg_layout_item(layout: field_1_layout)]
@@ -245,12 +183,13 @@ pub struct QCApp {
     clock_box: ClockBox,
 
     #[nwg_control(text: "Ranges")]
-    #[nwg_layout_item(layout: toolbar_button_layout,    )]
-    #[nwg_events( OnButtonClick:[QCApp::do_clcik])]
+    #[nwg_layout_item(layout: toolbar_button_layout)]
+    #[nwg_events( OnButtonClick:[QCApp::do_rang])]
     hello_button: nwg::Button,
 
     #[nwg_control(text: "Inventory")]
     #[nwg_layout_item(layout: toolbar_button_layout)]
+    #[nwg_events( OnButtonClick:[QCApp::do_clcik])]
     button_inventory: nwg::Button,
 
     #[nwg_control(text: "Reprint")]
@@ -279,7 +218,6 @@ pub struct QCApp {
     // #[nwg_layout_item(layout: window_layout)]
     // #[nwg_layout_item(layout: window_layout, size:ROW_50)] //
     panel_ob: nwg::Tab,
-
     #[nwg_control(text: "Friction Reducer" )]
     // #[nwg_layout_item(layout: window_layout)]
     // #[nwg_layout_item(layout: window_layout, size:ROW_50)] //
@@ -291,17 +229,6 @@ pub struct QCApp {
     #[nwg_layout_item(layout: window_layout, size:ROW_10)]
     action_button_layout: nwg::FlexboxLayout,
 
-    // #[nwg_control(text: "Submit")]
-    // #[nwg_layout_item(layout: action_button_layout)]
-    // submit_button: nwg::Button,
-    //
-    // #[nwg_control(text: "Clear")]
-    // #[nwg_layout_item(layout: action_button_layout)]
-    // clear_button: nwg::Button,
-    //
-    // #[nwg_control(text: "Log")]
-    // #[nwg_layout_item(layout: action_button_layout)]
-    // log_button: nwg::Button,
     #[nwg_control(parent: window, text: "Submit")]
     #[nwg_layout_item(layout: action_button_layout)]
     submit_button: nwg::Button,
@@ -313,33 +240,31 @@ pub struct QCApp {
     #[nwg_control(parent: window, text: "Log")]
     #[nwg_layout_item(layout: action_button_layout)]
     log_button: nwg::Button,
-    // #[nwg_control(popup: true)]
-    // #[nwg_control(parent: window, text: "&Edit")]
-    // main_menu: nwg::Menu,
-    //
-    // #[nwg_control(parent: main_menu, text: "Paste Items")]
-    // // #[nwg_events(OnMenuItemSelected: [QCApp::paste_items])]
-    // listbox_menu_paste: nwg::MenuItem,
-    // Status bar
-    // #[nwg_control(parent: window, font: Some(&data.font))]
-    // #[nwg_layout_item(layout: grid, row: 0, col: 0)]
-    // #[nwg_layout_item(layout: window_layout,
-    // // margin: MARGIN,
-    // // flex_grow: 2.0,
-    // size: Size { width: D::auto(), height: D::auto() }
-    // )]
-    // status: nwg::StatusBar,
+
+    #[nwg_partial(parent: panel_wb)]
+    product_wb: WBPanelView,
+    // product_wb: FRPanelView,
+    #[nwg_partial(parent: panel_ob)]
+    product_ob: OBPanelView,
+
+    #[nwg_partial(parent: panel_fr)]
+    product_fr: FRPanelView,
 }
 
 impl QCApp {
     /// Initial application setup when the event queue just started.
     fn setup(&self) {
+        // Do this here to avoid handling layout twice
         self.window.set_visible(true);
     }
 
     fn resize_clock_box(&self) {
         let (w, h) = self.clock_frame.size();
         self.clock_box.set_size(w, h);
+    }
+
+    fn do_rang(&self) {
+        self.product_fr.click();
     }
 
     fn do_clcik(&self) {

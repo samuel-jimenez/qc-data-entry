@@ -1,18 +1,12 @@
 extern crate native_windows_derive as nwd;
 
-use std::cell::RefCell;
-use std::cmp::min;
+use std::{cell::RefCell, cmp::min};
 
-// use chrono::{DateTime, Local, TimeDelta, Utc,seconds};
 use chrono::{DateTime, TimeDelta, Utc};
 use nwd::NwgPartial;
-use nwg::taffy::LengthPercentageAuto;
-use nwg::{CharEffects, CharFormat};
-
-// Flexbox style
-use nwg::taffy::{
-    geometry::Rect,
-    style::{Dimension as D, FlexDirection, FlexWrap},
+use nwg::{
+    taffy::{style::FlexDirection, LengthPercentageAuto},
+    CharEffects, CharFormat,
 };
 
 #[derive(Default, NwgPartial)]

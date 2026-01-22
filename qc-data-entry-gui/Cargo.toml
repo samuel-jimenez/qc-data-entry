@@ -1,0 +1,36 @@
+[package]
+name = "qc-data-entry-gui"
+version = "0.1.0"
+edition = "2024"
+build = "build.rs"
+
+
+# [dependencies]
+# nwg = {version = "^1.0.12", package = "native-windows-gui"}
+# native-windows-derive = "^1.0.3"
+
+# [patch.crates-io]
+# native-windows-gui = { git = 'https://github.com/samuel-jimenez/native-windows-gui.git' }
+# native-windows-derive = { git = 'https://github.com/samuel-jimenez/native-windows-gui.git' }
+
+[dev-dependencies]
+qc-data-entry-derive = { path = "../qc-data-entry-derive" }
+
+[dependencies]
+
+qc-data-entry-derive = { path = "../qc-data-entry-derive" }
+# nwg = { git = 'https://github.com/samuel-jimenez/native-windows-gui.git' , package = "native-windows-gui"}
+# native-windows-derive = { git = 'https://github.com/samuel-jimenez/native-windows-gui.git' }
+
+nwg = { path = 'c:/Users/QC Lab/Documents/rust/native-windows-gui/native-windows-gui' , package = "native-windows-gui", features =["flexbox"]}
+# nwg = { path = 'c:/Users/QC Lab/Documents/rust/native-windows-gui/native-windows-gui' , package = "native-windows-gui"}
+native-windows-derive = { path = 'c:/Users/QC Lab/Documents/rust/native-windows-gui/native-windows-derive' }
+# time = "0.3.44"
+chrono = "0.4.42"
+common_math = "0.3.0"
+
+
+[build-dependencies]
+embed-resource = "1.3"
+qc-data-entry-derive = { path = "../qc-data-entry-derive" }
+
