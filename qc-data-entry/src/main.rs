@@ -1,3 +1,8 @@
+use qc_data_entry::DataEntryConfig;
+
+// mod config;
+
 fn main() {
-    println!("SUP world");
+    // Print out our settings
+    println!("{:?}", DataEntryConfig::load());
 }
