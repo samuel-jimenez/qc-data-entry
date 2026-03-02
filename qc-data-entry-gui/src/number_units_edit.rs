@@ -3,7 +3,7 @@ use std::ops::Range;
 use nwg::{
     subclass_control,
     taffy::{style_helpers::auto, Dimension, Size},
-    ControlHandle, FlexboxLayout, Font, HTextAlign, Label, NwgError, TextInput, TextInputFlags,
+    ControlHandle, FlexboxLayout, Font, HTextAlign, Label, NwgError, Setters, TextInput,
     VTextAlign,
 };
 
@@ -22,7 +22,6 @@ Requires the `labeled` feature.
   * `label_width`:      The labeled input label width.
   * `field_width`:      The labeled input field width.
   * `units_width`:      The labeled input units width.
-  * `flags`:            A combination of the TextInputFlags values.
   * `ex_flags`:         A combination of win32 window extended flags. Unlike `flags`, ex_flags must be used straight from winapi
   * `font`:             The font used for the labeled input text
   * `limit`:            The maximum number of characters that can be inserted in the control
@@ -33,7 +32,13 @@ Requires the `labeled` feature.
   * `label_v_align`:    The vertical alignment of the label text in the labeled input.
   * `units_h_align`:    The horizontal alignment of the units text in the labeled input.
   * `units_v_align`:    The vertical alignment of the units text in the labeled input.
+  * `visible`:          The control is immediately visible after creation
+  * `enabled`:          The control can be interacted with by the user. It has a normal instead of grayed out look.
   * `focus`:            The control receives focus after being created
+  * `number`:           The control only accepts numbers
+  * `autoscroll`:       The control automatically scrolls text to the right by 10 characters when the user types a character
+                        at the end of the line. When the user presses the ENTER key, the control scrolls all text back to position zero.
+  * `tab_stop`:         The control can be selected using tab navigation
 
 **Control events:**
   * `OnTextInput`: When a NumberUnitsEdit value is changed
@@ -66,30 +71,7 @@ subclass_control!(NumberUnitsEdit, TextInput, field);
 
 impl NumberUnitsEdit {
     pub fn builder<'a>() -> NumberUnitsEditBuilder<'a> {
-        NumberUnitsEditBuilder {
-            label_text: "",
-            label_h_align: HTextAlign::Left,
-            label_v_align: VTextAlign::Center,
-            label_width: Dimension::percent(0.46),
-            units_text: "",
-            units_h_align: HTextAlign::Left,
-            units_v_align: VTextAlign::Center,
-            units_width: Dimension::percent(0.16),
-            text: "",
-            placeholder_text: None,
-            size: (100, 25),
-            position: (0, 0),
-            flags: None,
-            ex_flags: 0,
-            limit: 0,
-            password: None,
-            align: HTextAlign::Left,
-            field_width: Dimension::percent(0.85),
-            readonly: false,
-            focus: false,
-            font: None,
-            parent: None,
-        }
+        NumberUnitsEditBuilder::default()
     }
 
     /// Return the text displayed in the label
@@ -277,11 +259,14 @@ impl NumberUnitsEdit {
     }
 }
 
+#[derive(Setters)]
 pub struct NumberUnitsEditBuilder<'a> {
+    #[setter(name=label)]
     label_text: &'a str,
     label_h_align: HTextAlign,
     label_v_align: VTextAlign,
     label_width: Dimension,
+    #[setter(name=units)]
     units_text: &'a str,
     units_h_align: HTextAlign,
     units_v_align: VTextAlign,
@@ -290,132 +275,56 @@ pub struct NumberUnitsEditBuilder<'a> {
     placeholder_text: Option<&'a str>,
     size: (i32, i32),
     position: (i32, i32),
-    flags: Option<TextInputFlags>,
     ex_flags: u32,
     limit: usize,
     password: Option<char>,
     align: HTextAlign,
     field_width: Dimension,
     readonly: bool,
-    font: Option<&'a Font>,
-    parent: Option<ControlHandle>,
+    visible: bool,
+    enabled: bool,
     focus: bool,
+    // number: bool,
+    autoscroll: bool,
+    tab_stop: bool,
+    font: Option<&'a Font>,
+    #[setter(into, strip_option)]
+    parent: Option<ControlHandle>,
+}
+impl<'a> Default for NumberUnitsEditBuilder<'a> {
+    fn default() -> Self {
+        Self {
+            label_text: "",
+            label_h_align: HTextAlign::Left,
+            label_v_align: VTextAlign::Center,
+            label_width: Dimension::percent(0.46),
+            units_text: "",
+            units_h_align: HTextAlign::Left,
+            units_v_align: VTextAlign::Center,
+            units_width: Dimension::percent(0.16),
+            text: "",
+            placeholder_text: None,
+            size: (100, 25),
+            position: (0, 0),
+            ex_flags: 0,
+            limit: 0,
+            password: None,
+            align: HTextAlign::Left,
+            field_width: Dimension::percent(0.85),
+            readonly: false,
+            visible: true,
+            enabled: true,
+            focus: false,
+            // number: false,
+            autoscroll: true,
+            tab_stop: true,
+            font: None,
+            parent: None,
+        }
+    }
 }
 
 impl<'a> NumberUnitsEditBuilder<'a> {
-    pub fn flags(mut self, flags: TextInputFlags) -> NumberUnitsEditBuilder<'a> {
-        self.flags = Some(flags);
-        self
-    }
-
-    pub fn ex_flags(mut self, flags: u32) -> NumberUnitsEditBuilder<'a> {
-        self.ex_flags = flags;
-        self
-    }
-
-    pub fn text(mut self, text: &'a str) -> NumberUnitsEditBuilder<'a> {
-        self.text = text;
-        self
-    }
-
-    pub fn label(mut self, label_text: &'a str) -> NumberUnitsEditBuilder<'a> {
-        self.label_text = label_text;
-        self
-    }
-
-    pub fn label_h_align(mut self, align: HTextAlign) -> NumberUnitsEditBuilder<'a> {
-        self.label_h_align = align;
-        self
-    }
-
-    pub fn label_v_align(mut self, align: VTextAlign) -> NumberUnitsEditBuilder<'a> {
-        self.label_v_align = align;
-        self
-    }
-
-    pub fn label_width(mut self, label_width: Dimension) -> NumberUnitsEditBuilder<'a> {
-        self.label_width = label_width;
-        self
-    }
-
-    pub fn units(mut self, units_text: &'a str) -> NumberUnitsEditBuilder<'a> {
-        self.units_text = units_text;
-        self
-    }
-
-    pub fn units_h_align(mut self, align: HTextAlign) -> NumberUnitsEditBuilder<'a> {
-        self.units_h_align = align;
-        self
-    }
-
-    pub fn units_v_align(mut self, align: VTextAlign) -> NumberUnitsEditBuilder<'a> {
-        self.units_v_align = align;
-        self
-    }
-
-    pub fn units_width(mut self, units_width: Dimension) -> NumberUnitsEditBuilder<'a> {
-        self.units_width = units_width;
-        self
-    }
-
-    pub fn field_width(mut self, field_width: Dimension) -> NumberUnitsEditBuilder<'a> {
-        self.field_width = field_width;
-        self
-    }
-
-    pub fn placeholder_text(
-        mut self,
-        placeholder_text: Option<&'a str>,
-    ) -> NumberUnitsEditBuilder<'a> {
-        self.placeholder_text = placeholder_text;
-        self
-    }
-
-    pub fn size(mut self, size: (i32, i32)) -> NumberUnitsEditBuilder<'a> {
-        self.size = size;
-        self
-    }
-
-    pub fn position(mut self, pos: (i32, i32)) -> NumberUnitsEditBuilder<'a> {
-        self.position = pos;
-        self
-    }
-
-    pub fn limit(mut self, limit: usize) -> NumberUnitsEditBuilder<'a> {
-        self.limit = limit;
-        self
-    }
-
-    pub fn password(mut self, psw: Option<char>) -> NumberUnitsEditBuilder<'a> {
-        self.password = psw;
-        self
-    }
-
-    pub fn align(mut self, align: HTextAlign) -> NumberUnitsEditBuilder<'a> {
-        self.align = align;
-        self
-    }
-
-    pub fn readonly(mut self, read: bool) -> NumberUnitsEditBuilder<'a> {
-        self.readonly = read;
-        self
-    }
-
-    pub fn font(mut self, font: Option<&'a Font>) -> NumberUnitsEditBuilder<'a> {
-        self.font = font;
-        self
-    }
-
-    pub fn focus(mut self, focus: bool) -> NumberUnitsEditBuilder<'a> {
-        self.focus = focus;
-        self
-    }
-
-    pub fn parent<C: Into<ControlHandle>>(mut self, p: C) -> NumberUnitsEditBuilder<'a> {
-        self.parent = Some(p.into());
-        self
-    }
-
     pub fn build(self, out: &mut NumberUnitsEdit) -> Result<(), NwgError> {
         let parent = match self.parent {
             Some(p) => Ok(p),
@@ -446,12 +355,8 @@ impl<'a> NumberUnitsEditBuilder<'a> {
             .font(self.font)
             .build(&mut out.label)?;
 
-        let mut field = TextInput::builder().parent(&parent);
-        if self.flags.is_some() {
-            field = field.flags(self.flags.unwrap());
-        }
-
-        field
+        TextInput::builder()
+            .parent(&parent)
             .align(self.align)
             .size(self.size)
             .text(self.text)
@@ -459,7 +364,13 @@ impl<'a> NumberUnitsEditBuilder<'a> {
             .font(self.font)
             .password(self.password)
             .readonly(self.readonly)
+            .visible(self.visible)
+            .enabled(self.enabled)
             .focus(self.focus)
+            // .number(self.number)
+            // .number(true)
+            .autoscroll(self.autoscroll)
+            .tab_stop(self.tab_stop)
             .build(&mut out.field)?;
 
         Label::builder()

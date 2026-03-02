@@ -1,0 +1,113 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "gui",
+            "type": "lldb",
+            "request": "launch",
+            "program": "target/debug/qc-data-entry-gui.exe",
+            "args": []
+        },
+        {
+            "name": "gui-build",
+            "type": "lldb",
+            "request": "launch",
+            "preLaunchTask": "cargo-build",
+            "program": "target/debug/qc-data-entry-gui.exe",
+            "args": []
+        },
+        {
+            "name": "gui-build-default",
+            "type": "lldb",
+            "request": "launch",
+            "preLaunchTask": "${defaultBuildTask}",
+            "program": "target/debug/qc-data-entry-gui.exe",
+            "args": []
+        },
+        {
+            "name": "gui-run",
+            "type": "lldb",
+            "request": "launch",
+            "program": "target/debug/qc-data-entry-gui.exe",
+            "args": [
+                "--bin=qc-data-entry-gui",
+                "--package=qc-data-entry-gui"
+            ]
+        },
+        {
+            "name": "Debug executable 'qc-data-entry-gui'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "run",
+                    "--bin=qc-data-entry-gui",
+                    "--package=qc-data-entry-gui"
+                ]
+            },
+            "args": []
+        },
+        {
+            "name": "Debug unit tests in executable 'qc-data-entry-gui'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--bin=qc-data-entry-gui",
+                    "--package=qc-data-entry-gui"
+                ]
+            }
+        },
+        {
+            "name": "Debug unit tests in library 'log_result'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--package=log-result"
+                ]
+            }
+        },
+        {
+            "name": "Debug unit tests in library 'qc_data_entry'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--package=qc-data-entry"
+                ]
+            }
+        },
+        {
+            "name": "Debug executable 'qc-data-entry'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "run",
+                    "--bin=qc-data-entry",
+                    "--package=qc-data-entry"
+                ]
+            },
+            "args": []
+        },
+        {
+            "name": "Debug unit tests in executable 'qc-data-entry'",
+            "type": "lldb",
+            "request": "launch",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--bin=qc-data-entry",
+                    "--package=qc-data-entry"
+                ]
+            }
+        }
+    ]
+}

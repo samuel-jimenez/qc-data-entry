@@ -1,13 +1,12 @@
 // #![windows_subsystem = "windows"]
 // #![allow(unused_imports)]
-// #![allow(unused)]
-// #![allow(dead_code)]
+#![allow(unused)]
+#![allow(dead_code)]
 // #![warn(unused_imports)]
 // #![warn(unused)]
 
 /*!
- *   A very simple application that shows your name in a message box.
- *   Unlike `basic_d`, this example uses layout to position the controls in the window
+ *   Displays main entry window
  */
 
 extern crate native_windows_derive as nwd;
@@ -20,9 +19,14 @@ mod fr_product_view;
 mod number_units_edit;
 mod ob_product_view;
 mod qc_product_view;
+mod qr;
 mod range;
 mod wb_product_view;
 
+use std::sync::Arc;
+
+use log::{error, info};
+use log_result::ResultLog;
 use nwd::NwgUi;
 use nwg::{
     taffy::{
@@ -30,12 +34,15 @@ use nwg::{
         style::{Dimension as D, FlexDirection},
         style_helpers::auto,
     },
-    NativeUi,
+    NativeUi, ShortcutUi,
+};
+use qc_data_entry::{
+    init_logger, DataEntryConfig, LotList, ProductLine, ProductLot, QcTesterList, DB,
 };
 
 use crate::{
     clock::ClockBox, constants::*, fr_product_view::FRPanelView,
-    number_units_edit::NumberUnitsEdit, ob_product_view::OBPanelView, range::*,
+    number_units_edit::NumberUnitsEdit, ob_product_view::OBPanelView, qr::QRJson, range::*,
     wb_product_view::WBPanelView,
 };
 
@@ -65,6 +72,7 @@ const ROW_50: Size<D> = Size {
 };
 
 #[derive(Default, NwgUi)]
+#[nwg_shortcuts(Shift+LBracket: [QCApp::catch_qr_start])]
 pub struct QCApp {
     // Resources
     #[nwg_resource]
@@ -75,58 +83,28 @@ pub struct QCApp {
 
     // Window and layout
     #[nwg_control(size: (1400, 800), position: (300, 300), title: "QC Data Entry", flags: "MAIN_WINDOW", icon:  Some(&data.window_icon))]
-    #[nwg_events( OnInit: [QCApp::setup], OnWindowClose: [QCApp::say_goodbye] )]
+    #[nwg_events( OnInit: [QCApp::setup], OnWindowClose: [QCApp::say_goodbye])]
     window: nwg::Window,
 
-    // #[nwg_layout(parent: window, flex_direction: FlexDirection::Column, padding: PADDING)]
-    // window_layout: nwg::FlexboxLayout,
     #[nwg_layout(parent: window, flex_direction: FlexDirection::Column)]
-    // #[nwg_layout(parent: window, flex_direction: FlexDirection::Column, padding: PADDING,    flex_wrap:FlexWrap::NoWrap)]
-    // #[nwg_layout(parent: window,)]
     window_layout: nwg::FlexboxLayout,
     // window_layout: nwg::DynLayout, // ToDO
     //
     #[nwg_layout(parent: window, flex_direction: FlexDirection::Row)]
-    // #[nwg_layout_item(layout: window_layout)]
-    // #[nwg_layout_item(layout: window_layout, size:COL_1_3)] TODO
     #[nwg_layout_item(layout: window_layout, size:ROW_10)]
     toolbar_button_layout: nwg::FlexboxLayout,
 
-    // #[nwg_layout(parent: window, flex_direction: FlexDirection::Row, padding: PADDING, flex_wrap:FlexWrap::Wrap)]
     #[nwg_layout(parent: window, flex_direction: FlexDirection::Row)]
-    // #[nwg_layout(parent: window, flex_direction: FlexDirection::Row, padding: PADDING, flex_wrap:FlexWrap::NoWrap)]
-    // #[nwg_partial(parent: window_layout,    )]
-    // #[nwg_layout_item(layout: window_layout,
-    // // size:Size {
-    // //     width: auto(),
-    // //
-    // //     // width: D::length(200.0),
-    // //                   height: D::length(200.0),
-    // // },
-    // )]
     #[nwg_layout_item(layout: window_layout, size:ROW_25)]
     top_layout: nwg::FlexboxLayout,
 
-    // #[nwg_layout(parent: window, flex_direction: FlexDirection::Column, align_items: stretch::style::AlignItems::FlexStart)]
-    // #[nwg_layout(parent: window, flex_direction: FlexDirection::Column)]
-    // #[nwg_layout_item(layout: top_layout, size:LAEBL_SIZE)]
-    // label_0_layout: nwg::FlexboxLayout,
     #[nwg_layout(parent: window, flex_direction: FlexDirection::Column)]
     #[nwg_layout_item(layout: top_layout, size:COL_1_3)]
     field_0_layout: nwg::FlexboxLayout,
 
-    // #[nwg_layout(parent: window, flex_direction: FlexDirection::Column)]
-    // #[nwg_layout_item(layout: top_layout, size:LAEBL_SIZE)]
-    // label_1_layout: nwg::FlexboxLayout,
     #[nwg_layout(parent: window, flex_direction: FlexDirection::Column)]
     #[nwg_layout_item(layout: top_layout, size:COL_1_3)]
     field_1_layout: nwg::FlexboxLayout,
-    /*
-    #[nwg_layout(parent: window, flex_direction: FlexDirection::Row)]
-    // #[nwg_layout_item(layout: window_layout)]
-    // #[nwg_layout_item(layout: window_layout, size:COL_1_3)] TODO
-    #[nwg_layout_item(layout: window_layout, size:ROW_10)]
-    toolbar_button_layout: nwg::FlexboxLayout,*/
 
     // TODO clean
     /*
@@ -151,25 +129,33 @@ pub struct QCApp {
 
     */
     // // Controls
-    #[nwg_control(label: "Product", focus: true)]
-    #[nwg_layout_item(layout: field_0_layout)]
-    product_name_field: nwg::LabeledCombo<&'static str>,
+    #[nwg_control(visible:  false)]
+    #[nwg_shortcuts(Shift+RBracket: [QCApp::catch_qr_end])]
+    #[nwg_events(     OnKeyPress: [QCApp::test_qr])]
+    qr_catcher: nwg::TextInput,
 
-    #[nwg_control(label: "Customer Name")]
+    // #[nwg_control(label: "Product", focus: true)]
+    #[nwg_control(label: "Product", focus: true, upcase: true)]
+    #[nwg_layout_item(layout: field_0_layout)]
+    #[nwg_events( OnComboBoxSelection:[QCApp::prod_sel],OnComboxBoxInput:[QCApp::prod_inp])]
+    product_name_field: nwg::LabeledCombo<ProductLine>,
+
+    #[nwg_control(label: "Customer Name", upcase: true)]
     #[nwg_layout_item(layout: field_1_layout)]
+    #[nwg_events( OnKeyPress: [QCApp::do_key(SELF,EVT_DATA)],     OnSysKeyPress: [QCApp::do_key(SELF,EVT_DATA)], )]
     customer_name_field: nwg::LabeledCombo<&'static str>,
 
-    #[nwg_control(label: "Lot Number")]
+    #[nwg_control(label: "Lot Number", upcase: true)]
     #[nwg_layout_item(layout: field_0_layout)]
-    lot_name_field: nwg::LabeledCombo<&'static str>,
+    lot_name_field: nwg::LabeledCombo<ProductLot>,
 
-    #[nwg_control(label: "Sample Point")]
+    #[nwg_control(label: "Sample Point", upcase: true)]
     #[nwg_layout_item(layout: field_1_layout)]
     sample_name_field: nwg::LabeledCombo<&'static str>,
 
-    #[nwg_control(label: "Tester")]
+    #[nwg_control(label: "Tester", upcase: true)]
     #[nwg_layout_item(layout: field_0_layout)]
-    tester_name_field: nwg::LabeledCombo<&'static str>,
+    tester_name_field: nwg::LabeledCombo<QcTesterList>,
 
     #[nwg_control(text: "")]
     #[nwg_layout_item(layout: field_1_layout)]
@@ -205,27 +191,19 @@ pub struct QCApp {
     button_whups: nwg::Button,
 
     #[nwg_control]
-    // #[nwg_layout_item(layout: window_layout)]
-    #[nwg_layout_item(layout: window_layout, size:ROW_50)] //
+    #[nwg_layout_item(layout: window_layout, size:ROW_50)]
     tabs_container: nwg::TabsContainer,
 
     #[nwg_control(text: "Water Based")]
-    // #[nwg_layout_item(layout: window_layout)]
-    // #[nwg_layout_item(layout: window_layout, size:ROW_50)] //
     panel_wb: nwg::Tab,
 
     #[nwg_control(text: "Oil Based" )]
-    // #[nwg_layout_item(layout: window_layout)]
-    // #[nwg_layout_item(layout: window_layout, size:ROW_50)] //
     panel_ob: nwg::Tab,
+
     #[nwg_control(text: "Friction Reducer" )]
-    // #[nwg_layout_item(layout: window_layout)]
-    // #[nwg_layout_item(layout: window_layout, size:ROW_50)] //
     panel_fr: nwg::Tab,
 
     #[nwg_layout(parent: window, flex_direction: FlexDirection::Row)]
-    // #[nwg_layout_item(layout: window_layout)]
-    // #[nwg_layout_item(layout: window_layout, size:COL_1_3)] TODO
     #[nwg_layout_item(layout: window_layout, size:ROW_10)]
     action_button_layout: nwg::FlexboxLayout,
 
@@ -243,12 +221,15 @@ pub struct QCApp {
 
     #[nwg_partial(parent: panel_wb)]
     product_wb: WBPanelView,
-    // product_wb: FRPanelView,
+
     #[nwg_partial(parent: panel_ob)]
     product_ob: OBPanelView,
 
     #[nwg_partial(parent: panel_fr)]
     product_fr: FRPanelView,
+
+    config: Arc<DataEntryConfig>,
+    qc_db: Arc<DB>,
 }
 
 impl QCApp {
@@ -256,6 +237,85 @@ impl QCApp {
     fn setup(&self) {
         // Do this here to avoid handling layout twice
         self.window.set_visible(true);
+
+        // info!("Using config: {}", config.config_path.display());
+        // info!("Using config: {}", config_path.display());
+        // info!("Using config: {}", config_msg);
+
+        error!("Bright red error");
+        info!("This only appears in the log file");
+
+        self.product_name_field
+            .set_collection(ProductLine::select_product_info_all(&*self.qc_db));
+
+        self.tester_name_field
+            .set_collection(QcTesterList::select_qc_tester_all(&*self.qc_db));
+
+        // self.lot_name_field
+        //     .set_collection(ProductLot::select_product_lot_product(&*self.qc_db));
+        // select_product_lot
+
+        // log_file, err := os.OpenFile(config.LOG_FILE, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+        // if err != nil {
+        // 	log.Fatalf("Crit: error opening file: %v", err)
+        // }
+        // defer log_file.Close()
+        // log.Println("Info: Logging to logfile:", config.LOG_FILE)
+        //
+        // log.SetOutput(log_file)
+        // log.Println("Info: Using config:", config.Main_config.ConfigFileUsed())
+        //
+    }
+
+    fn catch_qr_start(&self) -> bool {
+        self.qr_catcher.set_focus();
+        self.qr_catcher.set_text("");
+        true
+    }
+    fn test_qr(&self) {
+        println!("test_qr:{}", self.qr_catcher.text());
+    }
+
+    // fn catch_qr_end(&self) -> Result<()>{
+    fn catch_qr_end(&self) -> serde_json::Result<()> {
+        // fn catch_qr_end(&self) -> Result<(), Box<dyn std::error::Error>> {
+
+        println!("END:{}", self.qr_catcher.text());
+        let qr_json: QRJson =
+            serde_json::from_str(&format!("{{{}}}", self.qr_catcher.text())).error()?;
+
+        // log.Println("debug: ReadFromScanner: ", qr_json)
+        // err := json.Unmarshal([]byte(qr_json), &product)
+        // if err == nil {
+        // 	view.product_panel.PopQRData(product)
+        // } else {
+        // 	log.Printf("error: [%s]: %q\n", "qr_json_mainWindow.keygrab", err)
+        // }
+        self.pop_qr_data(qr_json);
+
+        self.qr_catcher.set_text("");
+        self.tester_name_field.set_focus();
+        Ok(())
+    }
+
+    fn pop_qr_data(&self, qr_json: QRJson) {
+        println!("pop_qr_data:{}", self.qr_catcher.text());
+    }
+
+    //TODO add todAY button
+
+    fn prod_sel(&self) {
+        self.lot_name_field.set_collection(
+            self.product_name_field.collection()[self.product_name_field.selection().unwrap()]
+                .select_product_lot(&*self.qc_db),
+        );
+    }
+
+    fn prod_inp(&self) {
+        error!(
+            "ProductLine type: {}",
+            self.product_name_field.selection_string_or_text()
+        );
     }
 
     fn resize_clock_box(&self) {
@@ -268,21 +328,59 @@ impl QCApp {
     }
 
     fn do_clcik(&self) {
-        self.product_name_field.push("test")
+        self.customer_name_field.push("test")
+    }
+
+    //     fn print_char(data: &nwg::EventData) {
+    //     println!("{:?}", data.on_char());
+    // }
+    fn do_char(&self, data: &nwg::EventData) {
+        println!("{:?}", data.on_char());
+    }
+    fn do_key(&self, data: &nwg::EventData) {
+        println!("{:?}", data.on_key());
     }
 
     fn say_goodbye(&self) {
         nwg::stop_thread_dispatch();
+        self.config.save().unwrap();
     }
 }
 
 fn main() {
+    //load config
+    let config = Arc::new(DataEntryConfig::load());
+
+    // // log to file
+    init_logger(config.log_file.clone()).unwrap();
+
+    info!("Using config: {}", config.config_path().display());
+
+    //open_db
+    let qc_db = Arc::new(DB::new(config.db_file()).error().unwrap());
+
+    //
+    // //setup print goroutine
+    // threads.PRINT_QUEUE = make(chan string, 4)
+    // defer close(threads.PRINT_QUEUE)
+    // go threads.Do_print_queue(threads.PRINT_QUEUE)
+    //
+    // //setup status_bar goroutine
+    // threads.STATUS_QUEUE = make(chan string, 16)
+    // defer close(threads.STATUS_QUEUE)
+    // go threads.Do_status_queue(threads.STATUS_QUEUE)
+    // self.config.save().unwrap();
+
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
-    let _app = QCApp::build_ui(Default::default()).expect("Failed to build UI");
-    // _app.status.set_text(
-    //     0,
-    //     &format!("Current mode: {:?}; Instances linked: {}", 5, 7,),
-    // );
-    nwg::dispatch_thread_events();
+    let app_ui = QCApp::build_ui(QCApp {
+        config,
+        qc_db,
+        ..Default::default()
+    })
+    .expect("Failed to build UI");
+
+    app_ui.dispatch_thread_events();
+
+    // config.save().unwrap();
 }

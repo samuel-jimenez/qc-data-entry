@@ -3,15 +3,31 @@ name = "qc-data-entry"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "qc-data-entry"
+# required-features = ["simplelog"]
 
 
-[dependencies]
 # nwg = { git = 'https://github.com/samuel-jimenez/native-windows-gui.git' , package = "native-windows-gui"}
 # native-windows-derive = { git = 'https://github.com/samuel-jimenez/native-windows-gui.git' }
 
 # time = "0.3.44"
-chrono = "0.4.42"
+[dependencies]
+anyhow = "1.0.100"
+clap = { version = "4.5.56", features = ["derive"] }
 common_math = "0.3.0"
 config = "0.15.19"
+log = "0.4.29"
+log-result = { path = "../log-result" }
+rusqlite = "^0.37"
+semver = "1.0.27"
 serde = { version = "1.0.228", features = ["derive"] }
+serde_rusqlite = "0.40.1"
+simplelog = "^0.12.0"
+thiserror = "2.0.18"
+toml = "0.9.11"
+unwrap-log = "0.1.1"
 
+# rusqlite = "0.38.0"
+
+# simplelog = { version = "^0.12.0", optional = true }

@@ -1,0 +1,9 @@
+blendsheet_path = 'C:\Users\QC Lab\Isomeric Industries Incorporated/ISOMERIC-BIG SPRING - Documents\PRODUCTION/BLEND SHEETS - ACTIVE TO COMPLETED/C.13 BLEND SHEETS PENDING BLEND DETAILS'
+coa_filepath = 'C:\Users\QC Lab\Isomeric Industries Incorporated/ISOMERIC-BIG SPRING - Documents\QUALITY/COA-Filled'
+coa_template_path = 'C:\Users\QC Lab\Isomeric Industries Incorporated/ISOMERIC-BIG SPRING - Documents\QUALITY/COA TEMPLATES'
+db_path = 'C:\Users\QC Lab\Isomeric Industries Incorporated/ISOMERIC-BIG SPRING - Documents\QUALITY/log'
+font_size = 15
+label_path = 'C:\Users\QC Lab\Isomeric Industries Incorporated/ISOMERIC-BIG SPRING - Documents\gen\labels'
+log_file = 'C:\Users\QC Lab\Isomeric Industries Incorporated/ISOMERIC-BIG SPRING - Documents\var/log\qc_data_entry.log'
+retain_file_name = "RETAIN-SAMPLE-TRACKING.xlsx"
+retain_worksheet_name = "Sheet1"

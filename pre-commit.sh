@@ -3,8 +3,11 @@
 
 
 #stash changes
-STASH_NAME="pre-commit-$(date +%s)"
-git stash save --quiet --keep-index --include-untracked $STASH_NAME
+# STASH_NAME="pre-commit-$(date +%F-%H%M%S-%s)"
+STASH_NAME="pre-commit-$(date -u --iso-8601=seconds)-$(date +%s)"
+# git stash push --quiet --keep-index --include-untracked $STASH_NAME
+# untracked just causes problems
+git stash push --quiet --keep-index -m $STASH_NAME
 
 # format
 cargo +nightly fmt --check --quiet

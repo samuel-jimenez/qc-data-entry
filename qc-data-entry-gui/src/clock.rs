@@ -8,7 +8,7 @@ use nwg::{
     taffy::{style::FlexDirection, LengthPercentageAuto},
     CharEffects, CharFormat,
 };
-
+//e HideCaret
 #[derive(Default, NwgPartial)]
 pub struct ClockBox {
     height: RefCell<i32>,

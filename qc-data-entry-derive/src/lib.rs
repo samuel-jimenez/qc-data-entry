@@ -17,59 +17,61 @@ use syn::{
 
 #[proc_macro_attribute]
 pub fn derive_mass(args: TokenStream, input: TokenStream) -> TokenStream {
-    let mut ast = parse_macro_input!(input as DeriveInput);
+    let ast = parse_macro_input!(input as DeriveInput);
     let _ = parse_macro_input!(args as Nothing);
+
+    match derive_mass_impl(ast) {
+        Ok(val) => val,
+        Err(err) => err.into_compile_error(),
+    }
+    .into()
+}
+
+fn derive_mass_impl(mut ast: DeriveInput) -> Result<proc_macro2::TokenStream, Error> {
     let data_ident = &ast.ident;
 
     match &mut ast.data {
         syn::Data::Struct(struct_data) => {
             match &mut struct_data.fields {
                 syn::Fields::Named(fields) => {
-                    let layout_field = match fields.named.iter().find(|field| {
-                        field
-                            .attrs
-                            .iter()
-                            .find(|attr| attr.path.is_ident("nwg_layout"))
-                            .is_some()
-                    }) {
-                        Some(field) => field.ident.clone(),
-                        None => {
-                            return Error::new(
-                                data_ident.span(),
-                                format!(
-                                    "`{}` needs a #nwg_layout field to implement `derive_mass`.",
-                                    data_ident
-                                ),
-                            )
-                            .into_compile_error()
-                            .into()
-                        }
-                    };
+                    let layout_field = fields
+                        .named
+                        .iter()
+                        .find(|field| {
+                            field
+                                .attrs
+                                .iter()
+                                .find(|attr| attr.path().is_ident("nwg_layout"))
+                                .is_some()
+                        })
+                        .ok_or(Error::new(
+                            data_ident.span(),
+                            format!(
+                                "`{}` needs a #nwg_layout field to implement `derive_mass`",
+                                data_ident
+                            ),
+                        ))?
+                        .ident
+                        .clone();
 
                     let _ = std::mem::replace(
-                        match fields
+                        fields
                             .named
                             .iter_mut()
                             .find(|field| field.ident.as_ref().unwrap().to_string() == "mass")
-                        {
-                            Some(field) => field,
-                            None => {
-                                return Error::new(
-                                    data_ident.span(),
-                                    format!(
-                                        "`{}` needs a `mass` field to implement `derive_mass`.",
-                                        data_ident
-                                    ),
-                                )
-                                .into_compile_error()
-                                .into()
-                            }
-                        },
+                            .ok_or(Error::new(
+                                data_ident.span(),
+                                format!(
+                                    "`{}` needs a `mass` field to implement `derive_mass`",
+                                    data_ident
+                                ),
+                            ))?,
                         syn::Field::parse_named
                             .parse2(quote! {
                                 #[nwg_control(label: "Mass")]
                                 #[nwg_layout_item(layout: #layout_field)]
                                 #[nwg_events( OnTextInput:[#data_ident::have_mass])]
+                                // #[nwg_shortcuts(W: [#data_ident::proc_nav_shortcut(SELF,EVT,HANDLE)], A: [#data_ident::proc_nav_shortcut(SELF,EVT,HANDLE)], S: [#data_ident::proc_nav_shortcut(SELF,EVT,HANDLE)], D: [#data_ident::proc_nav_shortcut(SELF,EVT,HANDLE)])]
                                 mass: nwg::LabeledEdit
                             })
                             .unwrap(),
@@ -141,18 +143,15 @@ pub fn derive_mass(args: TokenStream, input: TokenStream) -> TokenStream {
             }
             };
 
-            return quote! {
+            Ok(quote! {
                 #ast
 
                 #impl_block
-            }
-            .into();
+            })
         }
-        _ => Error::new(
+        _ => Err(Error::new(
             data_ident.span(),
             "`derive_mass` has to be used with structs",
-        )
-        .into_compile_error()
-        .into(),
+        )),
     }
 }

@@ -1,7 +1,7 @@
 extern crate native_windows_derive as nwd;
 
 use nwd::NwgPartial;
-use nwg::taffy::FlexDirection;
+use nwg::{taffy::FlexDirection, KeyPress};
 
 use crate::{
     constants::{COL_20, COL_80, GROUP_PADDING},
@@ -18,6 +18,7 @@ pub struct WBPanelView {
     #[nwg_layout_item(layout: wb_layout, size:COL_80)]
     wb_frame: nwg::Frame,
     #[nwg_partial(parent: wb_frame)]
+    #[nwg_shortcuts((visual, ph, sg)  [A, D, NumpadSlash, NumpadTimes]: [WBPanelView::proc_nav_shortcut()])]
     product_wb: WBProductView,
 
     // #[nwg_partial(be: control)]
@@ -26,8 +27,12 @@ pub struct WBPanelView {
     #[nwg_layout_item(layout: wb_layout, size:COL_20)]
     product_range: WBRangesView,
 }
+impl WBPanelView {
+    fn proc_nav_shortcut() {}
+}
 
 #[derive(Default, NwgPartial)]
+#[nwg_shortcuts((visual, ph, sg)  [W, S, NumpadMinus, NumpadPlus]: [WBProductView::proc_nav_shortcut(SELF,EVT,HANDLE)])]
 pub struct WBProductView {
     // Layout
     #[nwg_layout(flex_direction: FlexDirection::Column, padding:GROUP_PADDING)]
@@ -51,6 +56,44 @@ pub struct WBProductView {
 impl WBProductView {
     fn tick(&self) {
         self.sg.set_label(&self.ph.text());
+    }
+    fn proc_nav_shortcut(&self, combo: &nwg::KeyCombo, handle: &nwg::ControlHandle) {
+        // match handle {
+        //     self.visual.handle =>
+        match combo {
+            nwg::KeyCombo {
+                key: KeyPress::W, ..
+            }
+            | nwg::KeyCombo {
+                key: KeyPress::NumpadMinus,
+                ..
+            } => {
+                if handle == &self.visual {
+                    self.visual.set_focus()
+                } else if handle == &self.ph {
+                    self.visual.set_focus()
+                } else if handle == &self.sg {
+                    self.ph.set_focus()
+                }
+            }
+            nwg::KeyCombo {
+                key: KeyPress::S, ..
+            }
+            | nwg::KeyCombo {
+                key: KeyPress::NumpadPlus,
+                ..
+            } => {
+                if handle == &self.visual {
+                    self.ph.set_focus()
+                } else if handle == &self.ph {
+                    self.sg.set_focus()
+                } else if handle == &self.sg {
+                    self.sg.set_focus()
+                }
+            }
+            _ => {}
+        }
+        println!("woo");
     }
 }
 
