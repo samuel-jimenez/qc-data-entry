@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use nwg::{
-    subclass_control,
+    subclass_control_layout,
     taffy::{style_helpers::auto, Dimension, Size},
     ControlHandle, FlexboxLayout, Font, HTextAlign, Label, NwgError, Setters, TextInput,
     VTextAlign,
@@ -67,7 +67,7 @@ pub struct NumberUnitsEdit {
     field: TextInput,
     units: Label,
 }
-subclass_control!(NumberUnitsEdit, TextInput, field);
+subclass_control_layout!(NumberUnitsEdit, TextInput, field, FlexboxLayout, layout);
 
 impl NumberUnitsEdit {
     pub fn builder<'a>() -> NumberUnitsEditBuilder<'a> {
@@ -398,11 +398,5 @@ impl<'a> NumberUnitsEditBuilder<'a> {
 impl PartialEq for NumberUnitsEdit {
     fn eq(&self, other: &Self) -> bool {
         self.field == other.field
-    }
-}
-
-impl From<&NumberUnitsEdit> for FlexboxLayout {
-    fn from(control: &NumberUnitsEdit) -> Self {
-        control.layout.clone()
     }
 }

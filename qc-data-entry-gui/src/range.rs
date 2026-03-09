@@ -4,7 +4,9 @@ extern crate native_windows_derive as nwd;
 use nwd::NwgPartial;
 use nwg::{subclass_layout, taffy::FlexDirection};
 
-#[derive(Default)]
+// #[derive(Default, Clone)]
+// #[derive(Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Range {
     min: Option<f32>,
     target: Option<f32>,
@@ -12,6 +14,11 @@ pub struct Range {
     // precision: int,//TODO allow specify precision
 }
 // {:.*}",   5, 0.01);
+impl Range {
+    pub fn check(&self, val: f32) -> bool {
+        self.min.is_none_or(|x| x <= val) && self.max.is_none_or(|x| x >= val)
+    }
+}
 
 impl From<Vec<Option<f32>>> for Range {
     fn from(val_in: Vec<Option<f32>>) -> Self {
@@ -55,13 +62,15 @@ pub struct RangeView {
     // #[nwg_control(text: "")]
     #[nwg_layout_item(layout: frame_layout)]
     max: nwg::Label,
+
+    range: std::cell::Cell<Range>,
 }
 
 subclass_layout!(RangeView, FlexboxLayout, frame_layout);
 
 //TODO allow specify precision
 impl RangeView {
-    pub fn set(&self, val: &Range) {
+    pub fn set(&self, val: Range) {
         let (min, min_spacer) = match val.min {
             // Some(x) => (format!("{:.3}", x).as_str(), "≤"),
             Some(x) => (&format!("{:.3}", x), "≤"),
@@ -82,6 +91,28 @@ impl RangeView {
         self.target.set_text(target);
         self.max.set_text(max);
         self.max_spacer.set_text(max_spacer);
+        self.range.set(val);
+    }
+
+    pub fn check(&self, val: f32) -> bool {
+        // if  self.range.get(){}
+        // let foo = self.range.get();
+        // let foo = self.range.get_mut();
+        // if self.range.get_mut() {}
+        // let range = self.range.get_mut();
+        // let range = self.range.get();
+        // let range = self.range.get().check();
+        // c.as_ptr();
+
+        // range.min.is_none_or(|x| x <= val) && range.max.is_none_or(|x| x >= val)
+        // *self.range.as_ptr().check()
+        // let range = *self.range.as_ptr()
+        // (*self.range.as_ptr()).check(val)
+        let ok_p = self.range.get().check(val);
+
+        println!("RangeView check val {val} {}", ok_p);
+        // if ok_p
+        ok_p
     }
 }
 

@@ -6,6 +6,7 @@ use qc_data_entry_derive::derive_mass;
 
 use crate::{
     constants::{COL_20, COL_80, GROUP_PADDING, VISUAL_MARGIN},
+    number_edit_fixed::FixedNumEdit,
     NumberUnitsEdit, RangeView,
 };
 
@@ -45,7 +46,7 @@ pub struct OBProductView {
     #[nwg_layout_item(layout: frame_layout, margin:VISUAL_MARGIN)]
     visual: nwg::CheckBox,
 
-    mass: nwg::LabeledEdit,
+    mass: FixedNumEdit,
 }
 impl OBProductView {
     fn proc_nav_shortcut(&self, combo: &nwg::KeyCombo, handle: &nwg::ControlHandle) {

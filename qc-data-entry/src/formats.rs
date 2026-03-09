@@ -7,4 +7,11 @@ pub fn format_sg_mass(sg: f32) -> String {
     sig_fig(sg, precision)
     // sig_fig!(sg, precision)
 }
-//TODO format_density format_mass
+
+pub fn format_density(density: f32) -> String {
+    sig_fig(density, 3)
+}
+
+pub fn format_mass(mass: f32) -> String {
+    sig_fig(mass, 2)
+}

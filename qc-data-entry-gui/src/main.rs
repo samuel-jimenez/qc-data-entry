@@ -13,9 +13,8 @@ extern crate native_windows_derive as nwd;
 
 mod clock;
 mod constants;
-mod convert;
-mod formats;
 mod fr_product_view;
+mod number_edit_fixed;
 mod number_units_edit;
 mod ob_product_view;
 mod qc_product_view;
@@ -324,7 +323,8 @@ impl QCApp {
     }
 
     fn do_rang(&self) {
-        self.product_fr.click();
+        self.product_wb.click();
+        // self.product_fr.click();
     }
 
     fn do_clcik(&self) {

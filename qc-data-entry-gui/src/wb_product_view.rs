@@ -1,10 +1,12 @@
 extern crate native_windows_derive as nwd;
 
+use log::error;
 use nwd::NwgPartial;
-use nwg::{taffy::FlexDirection, KeyPress};
+use nwg::{taffy::FlexDirection, EventData, KeyPress, Setters};
 
 use crate::{
     constants::{COL_20, COL_80, GROUP_PADDING},
+    number_edit_fixed::FixedNumEdit,
     RangeView, VISUAL_MARGIN,
 };
 
@@ -19,6 +21,9 @@ pub struct WBPanelView {
     wb_frame: nwg::Frame,
     #[nwg_partial(parent: wb_frame)]
     #[nwg_shortcuts((visual, ph, sg)  [A, D, NumpadSlash, NumpadTimes]: [WBPanelView::proc_nav_shortcut()])]
+    // #[nwg_events((ph, sg) OnChar: [FixedNumEdit::press_key(TARGET, EVT_DATA)], (ph, sg) OnTextInput: [FixedNumEdit::parse(TARGET)])]
+    // #[nwg_events((ph, sg) OnChar: [FixedNumEdit::type_key(TARGET, EVT_DATA)], (ph, sg) OnKeyPress: [FixedNumEdit::press_key(TARGET, EVT_DATA)], (ph, sg) OnTextInput: [WBPanelView::check_data_entry(SELF,TARGET)])]
+    #[nwg_events((ph, sg) OnTextInput: [WBPanelView::check_data_entry(SELF,TARGET)])]
     product_wb: WBProductView,
 
     // #[nwg_partial(be: control)]
@@ -29,10 +34,29 @@ pub struct WBPanelView {
 }
 impl WBPanelView {
     fn proc_nav_shortcut() {}
+    fn check_data_entry(&self, field: &FixedNumEdit) -> Result<(), std::num::ParseFloatError> {
+        let val = field.parse()?;
+        // self.product_range.ph.check(val);
+        // println!("check val {val} {}", self.product_range.ph.check(val));
+        println!("check val {val} {}", self.product_range.sg.check(val));
+        Ok(())
+    }
+
+    pub fn click(&self) {
+        self.product_range
+            .sg
+            // .set(&(vec![None, Some(5.1), None]).into());
+            // .set(&vec![None, Some(5.1), None].into());
+            .set(vec![Some(0.1), Some(5.1), Some(0.1115)].into());
+        // .set(&vec![Some(0.1), Some(5.1), Some(0.1115)].into());
+        // .set(vec![None, Some(5.1), None].into());
+        // .set(*vec![None, Some(5.1), None].into());
+    }
 }
 
 #[derive(Default, NwgPartial)]
 #[nwg_shortcuts((visual, ph, sg)  [W, S, NumpadMinus, NumpadPlus]: [WBProductView::proc_nav_shortcut(SELF,EVT,HANDLE)])]
+// #[nwg_events((ph, sg) OnChar: [FixedNumEdit::press_key(TARGET, EVT_DATA)], (ph, sg) OnTextInput: [FixedNumEdit::parse(TARGET)])]
 pub struct WBProductView {
     // Layout
     #[nwg_layout(flex_direction: FlexDirection::Column, padding:GROUP_PADDING)]
@@ -43,23 +67,25 @@ pub struct WBProductView {
     #[nwg_layout_item(layout: frame_layout, margin:VISUAL_MARGIN)]
     visual: nwg::CheckBox,
 
-    #[nwg_control(label: "pH")]
+    #[nwg_control(label: "pH", places: 1, precision: 2)]
+    // #[nwg_control(label: "mass", places: 3, precision: 2)]
     #[nwg_layout_item(layout: frame_layout)]
-    #[nwg_events(OnTextInput: [WBProductView::tick])]
-    ph: nwg::LabeledEdit,
+    // #[nwg_events(OnChar: [FixedNumEdit::press_key(TARGET, EVT_DATA)], OnTextInput: [FixedNumEdit::parse(TARGET)])]
+    ph: FixedNumEdit,
 
-    #[nwg_control(label: "Specific Gravity")]
+    #[nwg_control(label: "Specific Gravity", places: 1, precision: 4)]
     #[nwg_layout_item(layout: frame_layout)]
-    sg: nwg::LabeledEdit,
+    // #[nwg_events(OnChar: [FixedNumEdit::press_key(TARGET, EVT_DATA)], OnTextInput: [FixedNumEdit::parse(TARGET)])]
+    sg: FixedNumEdit,
 }
 
 impl WBProductView {
-    fn tick(&self) {
-        self.sg.set_label(&self.ph.text());
+    fn parse(&self, field: &FixedNumEdit) -> Result<f32, std::num::ParseFloatError> {
+        field.parse()
+        // field.parse_sg()
     }
+
     fn proc_nav_shortcut(&self, combo: &nwg::KeyCombo, handle: &nwg::ControlHandle) {
-        // match handle {
-        //     self.visual.handle =>
         match combo {
             nwg::KeyCombo {
                 key: KeyPress::W, ..
