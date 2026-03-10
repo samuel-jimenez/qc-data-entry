@@ -1,5 +1,7 @@
 extern crate native_windows_derive as nwd;
 
+use std::cell::Cell;
+
 // use nwd::{NwgControl, NwgPartial};
 use nwd::NwgPartial;
 use nwg::{subclass_layout, taffy::FlexDirection};
@@ -15,8 +17,15 @@ pub struct Range {
 }
 // {:.*}",   5, 0.01);
 impl Range {
-    pub fn check(&self, val: f32) -> bool {
-        self.min.is_none_or(|x| x <= val) && self.max.is_none_or(|x| x >= val)
+    // pub fn check(&self, val: f32) -> bool {
+    //     self.min.is_none_or(|x| x <= val) && self.max.is_none_or(|x| x >= val)
+    // }
+
+    pub fn check_min(&self, val: f32) -> bool {
+        self.min.is_none_or(|x| x <= val)
+    }
+    pub fn check_max(&self, val: f32) -> bool {
+        self.max.is_none_or(|x| x >= val)
     }
 }
 
@@ -63,7 +72,10 @@ pub struct RangeView {
     #[nwg_layout_item(layout: frame_layout)]
     max: nwg::Label,
 
-    range: std::cell::Cell<Range>,
+    range: Cell<Range>,
+
+    min_ok_p: Cell<bool>,
+    max_ok_p: Cell<bool>,
 }
 
 subclass_layout!(RangeView, FlexboxLayout, frame_layout);
@@ -92,6 +104,8 @@ impl RangeView {
         self.max.set_text(max);
         self.max_spacer.set_text(max_spacer);
         self.range.set(val);
+        self.min_ok_p.set(true);
+        self.max_ok_p.set(true);
     }
 
     pub fn check(&self, val: f32) -> bool {
@@ -108,11 +122,33 @@ impl RangeView {
         // *self.range.as_ptr().check()
         // let range = *self.range.as_ptr()
         // (*self.range.as_ptr()).check(val)
-        let ok_p = self.range.get().check(val);
+        // let ok_p = self.range.get().check(val);
 
-        println!("RangeView check val {val} {}", ok_p);
-        // if ok_p
-        ok_p
+        let range = self.range.get();
+        let min_ok_p = range.check_min(val);
+        if min_ok_p != self.min_ok_p.get() {
+            if min_ok_p {
+                self.min.set_border_color(None);
+            } else {
+                self.min.set_border_color(Some([0xff, 0, 0]));
+            }
+        }
+
+        let max_ok_p = range.check_max(val);
+        if max_ok_p != self.max_ok_p.get() {
+            if max_ok_p {
+                self.max.set_border_color(None);
+            } else {
+                self.max.set_border_color(Some([0xff, 0, 0]));
+            }
+        }
+        self.min_ok_p.set(min_ok_p);
+        self.max_ok_p.set(max_ok_p);
+
+        //     println!("RangeView check val {val} {}", ok_p);
+        // // if ok_p
+        // ok_p
+        min_ok_p && max_ok_p
     }
 }
 

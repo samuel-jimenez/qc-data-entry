@@ -221,6 +221,9 @@ impl FixedNumEdit {
         );
         *self.handler0.borrow_mut() = Some(handler.unwrap());
     }
+    // pub fn set_background_color(&self, color: Option<[u8; 3]>) {
+    //     self.field
+    // }
 }
 
 #[derive(Setters)]
@@ -244,6 +247,13 @@ impl<'a> Default for FixedNumEditBuilder<'a> {
 }
 
 impl<'a> FixedNumEditBuilder<'a> {
+    pub fn background_color(
+        mut self,
+        background_color: Option<[u8; 3]>,
+    ) -> FixedNumEditBuilder<'a> {
+        self.control_builder = self.control_builder.background_color(background_color);
+        self
+    }
     pub fn label(mut self, label: &'a str) -> FixedNumEditBuilder<'a> {
         self.control_builder = self.control_builder.label(label);
         self

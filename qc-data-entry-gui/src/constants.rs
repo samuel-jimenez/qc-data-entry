@@ -24,11 +24,24 @@ pub(crate) const GROUP_PADDING: Rect<LengthPercentage> = Rect {
 };
 
 const PC_20: D = D::percent(0.2);
+const PC_30: D = D::percent(0.3);
+const PC_35: D = D::percent(0.35);
 const PC_40: D = D::percent(0.4);
+const PC_70: D = D::percent(0.7);
 const PC_80: D = D::percent(0.8);
 
 pub const COL_20: Size<D> = Size {
     width: PC_20,
+    height: auto(),
+};
+
+pub const COL_30: Size<D> = Size {
+    width: PC_30,
+    height: auto(),
+};
+
+pub const COL_35: Size<D> = Size {
+    width: PC_35,
     height: auto(),
 };
 
@@ -37,6 +50,10 @@ pub const COL_40: Size<D> = Size {
     height: auto(),
 };
 
+pub const COL_70: Size<D> = Size {
+    width: PC_70,
+    height: auto(),
+};
 pub const COL_80: Size<D> = Size {
     width: PC_80,
     height: auto(),

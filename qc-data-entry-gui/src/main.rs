@@ -81,7 +81,7 @@ pub struct QCApp {
     window_icon: nwg::Icon,
 
     // Window and layout
-    #[nwg_control(size: (1400, 800), position: (300, 300), title: "QC Data Entry", flags: "MAIN_WINDOW", icon:  Some(&data.window_icon))]
+    #[nwg_control(size: (1600, 900), position: (300, 300), title: "QC Data Entry", flags: "MAIN_WINDOW", icon:  Some(&data.window_icon))]
     #[nwg_events( OnInit: [QCApp::setup], OnWindowClose: [QCApp::say_goodbye])]
     window: nwg::Window,
 
@@ -324,7 +324,8 @@ impl QCApp {
 
     fn do_rang(&self) {
         self.product_wb.click();
-        // self.product_fr.click();
+        self.product_ob.click();
+        self.product_fr.click();
     }
 
     fn do_clcik(&self) {

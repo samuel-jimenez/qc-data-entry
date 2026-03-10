@@ -2,10 +2,10 @@ extern crate native_windows_derive as nwd;
 
 use log::error;
 use nwd::NwgPartial;
-use nwg::{taffy::FlexDirection, EventData, KeyPress, Setters};
+use nwg::{taffy::FlexDirection, ControlHandle, EventData, KeyPress, Setters};
 
 use crate::{
-    constants::{COL_20, COL_80, GROUP_PADDING},
+    constants::{COL_20, COL_30, COL_70, COL_80, GROUP_PADDING},
     number_edit_fixed::FixedNumEdit,
     RangeView, VISUAL_MARGIN,
 };
@@ -17,28 +17,43 @@ pub struct WBPanelView {
 
     #[nwg_control(flags: "VISIBLE")]
     // #[nwg_layout_item(layout: wb_layout)]
-    #[nwg_layout_item(layout: wb_layout, size:COL_80)]
+    #[nwg_layout_item(layout: wb_layout, size:COL_70)]
     wb_frame: nwg::Frame,
     #[nwg_partial(parent: wb_frame)]
     #[nwg_shortcuts((visual, ph, sg)  [A, D, NumpadSlash, NumpadTimes]: [WBPanelView::proc_nav_shortcut()])]
     // #[nwg_events((ph, sg) OnChar: [FixedNumEdit::press_key(TARGET, EVT_DATA)], (ph, sg) OnTextInput: [FixedNumEdit::parse(TARGET)])]
     // #[nwg_events((ph, sg) OnChar: [FixedNumEdit::type_key(TARGET, EVT_DATA)], (ph, sg) OnKeyPress: [FixedNumEdit::press_key(TARGET, EVT_DATA)], (ph, sg) OnTextInput: [WBPanelView::check_data_entry(SELF,TARGET)])]
-    #[nwg_events((ph, sg) OnTextInput: [WBPanelView::check_data_entry(SELF,TARGET)])]
+    #[nwg_events((ph, sg) OnTextInput: [WBPanelView::check_data_entry(SELF,TARGET,HANDLE)])]
     product_wb: WBProductView,
 
     // #[nwg_partial(be: control)]
     #[nwg_partial_control]
     // #[nwg_layout_item(layout: wb_layout)]
-    #[nwg_layout_item(layout: wb_layout, size:COL_20)]
+    #[nwg_layout_item(layout: wb_layout, size:COL_30)]
     product_range: WBRangesView,
 }
 impl WBPanelView {
     fn proc_nav_shortcut() {}
-    fn check_data_entry(&self, field: &FixedNumEdit) -> Result<(), std::num::ParseFloatError> {
+    fn check_data_entry(
+        &self,
+        field: &FixedNumEdit,
+        handle: &ControlHandle,
+    ) -> Result<(), std::num::ParseFloatError> {
         let val = field.parse()?;
-        // self.product_range.ph.check(val);
-        // println!("check val {val} {}", self.product_range.ph.check(val));
-        println!("check val {val} {}", self.product_range.sg.check(val));
+        let ok_p = if handle == &self.product_wb.ph {
+            self.product_range.ph.check(val)
+        } else if handle == &self.product_wb.sg {
+            self.product_range.sg.check(val)
+        } else {
+            false
+        };
+
+        if ok_p {
+            field.set_border_color(None);
+        } else {
+            field.set_border_color(Some([0xff, 0, 0]));
+        }
+
         Ok(())
     }
 
@@ -74,6 +89,8 @@ pub struct WBProductView {
     ph: FixedNumEdit,
 
     #[nwg_control(label: "Specific Gravity", places: 1, precision: 4)]
+    // #[nwg_control(label: "Specific Gravity", places: 1, precision: 4, background_color:Some([0xff,0,0]))]
+    // #[nwg_control(label: "Specific Gravity", places: 1, precision: 4, background_color:Some([0,0,0xff]))]
     #[nwg_layout_item(layout: frame_layout)]
     // #[nwg_events(OnChar: [FixedNumEdit::press_key(TARGET, EVT_DATA)], OnTextInput: [FixedNumEdit::parse(TARGET)])]
     sg: FixedNumEdit,
