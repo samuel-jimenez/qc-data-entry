@@ -1,44 +1,13 @@
 extern crate native_windows_derive as nwd;
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 // use nwd::{NwgControl, NwgPartial};
 use nwd::NwgPartial;
 use nwg::{subclass_layout, taffy::FlexDirection};
+use qc_data_entry::Range;
 
-// #[derive(Default, Clone)]
-// #[derive(Default, Clone, Copy)]
-#[derive(Debug, Default, Clone, Copy)]
-pub struct Range {
-    min: Option<f32>,
-    target: Option<f32>,
-    max: Option<f32>,
-    // precision: int,//TODO allow specify precision
-}
-// {:.*}",   5, 0.01);
-impl Range {
-    // pub fn check(&self, val: f32) -> bool {
-    //     self.min.is_none_or(|x| x <= val) && self.max.is_none_or(|x| x >= val)
-    // }
-
-    pub fn check_min(&self, val: f32) -> bool {
-        self.min.is_none_or(|x| x <= val)
-    }
-    pub fn check_max(&self, val: f32) -> bool {
-        self.max.is_none_or(|x| x >= val)
-    }
-}
-
-impl From<Vec<Option<f32>>> for Range {
-    fn from(val_in: Vec<Option<f32>>) -> Self {
-        Self {
-            min: val_in[0],
-            target: val_in[1],
-            max: val_in[2],
-        }
-    }
-}
-
+//TODO rewrite as control
 #[derive(Default, NwgPartial)]
 // #[derive(Default, NwgControl)]
 pub struct RangeView {
@@ -72,17 +41,25 @@ pub struct RangeView {
     #[nwg_layout_item(layout: frame_layout)]
     max: nwg::Label,
 
-    range: Cell<Range>,
+    range: RefCell<Range>,
 
     min_ok_p: Cell<bool>,
     max_ok_p: Cell<bool>,
+    // precision: Cell<int>, ,//TODO allow specify precision
 }
 
 subclass_layout!(RangeView, FlexboxLayout, frame_layout);
 
 //TODO allow specify precision
 impl RangeView {
-    pub fn set(&self, val: Range) {
+    // pub fn set(&self, val: &Range) {
+    pub fn set(&self, val: &Option<Range>) {
+        self.set_impl(val.clone().unwrap_or_default());
+    }
+    pub fn set_with_map(&self, val: &Option<Range>, map: fn(f32) -> f32) {
+        self.set_impl(val.as_ref().map(|x| x.map(map)).unwrap_or_default())
+    }
+    fn set_impl(&self, val: Range) {
         let (min, min_spacer) = match val.min {
             // Some(x) => (format!("{:.3}", x).as_str(), "≤"),
             Some(x) => (&format!("{:.3}", x), "≤"),
@@ -103,7 +80,7 @@ impl RangeView {
         self.target.set_text(target);
         self.max.set_text(max);
         self.max_spacer.set_text(max_spacer);
-        self.range.set(val);
+        self.range.replace(val);
         self.min_ok_p.set(true);
         self.max_ok_p.set(true);
     }
@@ -124,7 +101,7 @@ impl RangeView {
         // (*self.range.as_ptr()).check(val)
         // let ok_p = self.range.get().check(val);
 
-        let range = self.range.get();
+        let range = self.range.borrow();
         let min_ok_p = range.check_min(val);
         if min_ok_p != self.min_ok_p.get() {
             if min_ok_p {

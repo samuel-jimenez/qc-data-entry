@@ -2,6 +2,7 @@ extern crate native_windows_derive as nwd;
 
 use nwd::NwgPartial;
 use nwg::{taffy::FlexDirection, ControlHandle, KeyPress, ModifierKeys};
+use qc_data_entry::QCProduct;
 use qc_data_entry_derive::derive_mass;
 
 use crate::{
@@ -43,7 +44,9 @@ impl OBPanelView {
         } else {
             false
         };
-
+        // TODO have have_mass return triplet
+        // (mass, sg, density)
+        // // check each
         if ok_p {
             field.set_border_color(None);
         } else {
@@ -53,25 +56,15 @@ impl OBPanelView {
         Ok(())
     }
 
-    pub fn click(&self) {
+    pub(crate) fn update_product(&self, qc_product: &QCProduct) -> () {
+        self.product_range.sg.set(&qc_product.sg);
         self.product_range
             .mass
-            // .set(&(vec![None, Some(5.1), None]).into());
-            // .set(&vec![None, Some(5.1), None].into());
-            .set(vec![Some(79.89), Some(88.01), Some(90.95)].into());
-        // .set(&vec![Some(0.1), Some(5.1), Some(0.1115)].into());
-        // .set(vec![None, Some(5.1), None].into());
-        // .set(*vec![None, Some(5.1), None].into());
-        self.product_range
-            .sg
-            // .set(&(vec![None, Some(5.1), None]).into());
-            // .set(&vec![None, Some(5.1), None].into());
-            .set(vec![Some(0.1), Some(5.1), Some(0.1115)].into());
+            .set_with_map(&qc_product.sg, qc_data_entry::convert::mass_from_sg);
+        self.product_range.density.set(&qc_product.density);
     }
 }
 
-const PT_10: nwg::taffy::LengthPercentageAuto = nwg::taffy::LengthPercentageAuto::length(10.0);
-const PT_35: nwg::taffy::LengthPercentageAuto = nwg::taffy::LengthPercentageAuto::length(35.0);
 #[derive_mass]
 #[derive(Default, NwgPartial)]
 #[nwg_shortcuts((visual, mass)  [W, S, NumpadMinus, NumpadPlus]: [OBProductView::proc_nav_shortcut(SELF,EVT,HANDLE)])]
@@ -84,18 +77,6 @@ pub struct OBProductView {
     #[nwg_control(text: "Visual Inspection")]
     #[nwg_layout_item(layout: frame_layout, margin:VISUAL_MARGIN)]
     visual: nwg::CheckBox,
-    #[nwg_control(text: "Test", border_color:Some([0xfe,0,0]))]
-    #[nwg_layout_item(layout: frame_layout, margin: taffy::Rect {
-        left: PT_10,
-        right: PT_10,
-        top: PT_35,
-        bottom: PT_10,
-    })]
-    test: nwg::Label,
-
-    #[nwg_control(text: "paddy", border_color:Some([0,0,0xfe]))]
-    #[nwg_layout_item(layout: frame_layout)]
-    paddy: nwg::Label,
 
     mass: FixedNumEdit,
 }

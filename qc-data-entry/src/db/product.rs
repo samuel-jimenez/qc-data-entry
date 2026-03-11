@@ -5,11 +5,11 @@ use serde_rusqlite::from_rows;
 
 // use serde::{Deserialize, Serialize};
 // use crate::errors::Result;
-use crate::{ProductLot, DB};
+use crate::{ProductCustomerName, ProductLot, SamplePoint, DB};
 
 #[derive(Deserialize, Debug, Default, Clone)]
 pub struct ProductLine {
-    product_id: u32,
+    pub(super) product_id: u32,
     product_moniker_name: String,
     product_name_internal: String,
 }
@@ -25,7 +25,7 @@ impl fmt::Display for ProductLine {
 }
 
 impl ProductLine {
-    pub fn select_product_info_all(db: &DB) -> Vec<Self> {
+    pub fn select_info_all(db: &DB) -> Vec<Self> {
         let mut statement = db
             .prepare(
                 "select product_id, product_name_internal, product_moniker_name
@@ -38,8 +38,14 @@ impl ProductLine {
             .map(|x| x.unwrap())
             .collect()
     }
-    pub fn select_product_lot(&self, db: &DB) -> Vec<ProductLot> {
-        ProductLot::select_product_lot_product(db, &self.product_id)
+    pub fn select_product_lots(&self, db: &DB) -> Vec<ProductLot> {
+        ProductLot::select_info(db, &self.product_id)
+    }
+    pub fn select_customer_names(&self, db: &DB) -> Vec<ProductCustomerName> {
+        ProductCustomerName::select_info(db, &self.product_id)
+    }
+    pub fn select_sample_points(&self, db: &DB) -> Vec<SamplePoint> {
+        SamplePoint::select_info(db, &self.product_id)
     }
 }
 /*

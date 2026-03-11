@@ -38,7 +38,7 @@ fn main() {
 
     println!(
         "product_info: {:?}",
-        ProductLine::select_product_info_all(&qc_db) // qc_db.select_product_info_all().unwrap()
+        ProductLine::select_info_all(&qc_db) // qc_db.select_product_info_all().unwrap()
     );
 
     //

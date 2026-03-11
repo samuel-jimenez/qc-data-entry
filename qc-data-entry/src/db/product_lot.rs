@@ -25,7 +25,7 @@ impl fmt::Display for ProductLot {
 }
 
 impl ProductLot {
-    pub fn select_product_lot_product(db: &DB, product_id: &u32) -> Vec<Self> {
+    pub fn select_info(db: &DB, product_id: &u32) -> Vec<Self> {
         let mut statement = db
             .prepare(
                 "

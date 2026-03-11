@@ -36,7 +36,8 @@ use nwg::{
     NativeUi, ShortcutUi,
 };
 use qc_data_entry::{
-    init_logger, DataEntryConfig, LotList, ProductLine, ProductLot, QcTesterList, DB,
+    init_logger, DataEntryConfig, LotList, ProductCustomerName, ProductLine, ProductLot, QCProduct,
+    QcTesterList, SamplePoint, DB,
 };
 
 use crate::{
@@ -142,7 +143,7 @@ pub struct QCApp {
     #[nwg_control(label: "Customer Name", upcase: true)]
     #[nwg_layout_item(layout: field_1_layout)]
     #[nwg_events( OnKeyPress: [QCApp::do_key(SELF,EVT_DATA)],     OnSysKeyPress: [QCApp::do_key(SELF,EVT_DATA)], )]
-    customer_name_field: nwg::LabeledCombo<&'static str>,
+    customer_name_field: nwg::LabeledCombo<ProductCustomerName>,
 
     #[nwg_control(label: "Lot Number", upcase: true)]
     #[nwg_layout_item(layout: field_0_layout)]
@@ -150,7 +151,7 @@ pub struct QCApp {
 
     #[nwg_control(label: "Sample Point", upcase: true)]
     #[nwg_layout_item(layout: field_1_layout)]
-    sample_name_field: nwg::LabeledCombo<&'static str>,
+    sample_name_field: nwg::LabeledCombo<SamplePoint>,
 
     #[nwg_control(label: "Tester", upcase: true)]
     #[nwg_layout_item(layout: field_0_layout)]
@@ -245,7 +246,7 @@ impl QCApp {
         info!("This only appears in the log file");
 
         self.product_name_field
-            .set_collection(ProductLine::select_product_info_all(&*self.qc_db));
+            .set_collection(ProductLine::select_info_all(&*self.qc_db));
 
         self.tester_name_field
             .set_collection(QcTesterList::select_qc_tester_all(&*self.qc_db));
@@ -299,15 +300,30 @@ impl QCApp {
 
     fn pop_qr_data(&self, qr_json: QRJson) {
         println!("pop_qr_data:{}", self.qr_catcher.text());
+        &self.product_name_field.set_selection(
+            self.product_name_field
+                .set_selection_string(&*qr_json.product_type),
+        );
+        self.prod_sel()
     }
 
     //TODO add todAY button
 
     fn prod_sel(&self) {
-        self.lot_name_field.set_collection(
-            self.product_name_field.collection()[self.product_name_field.selection().unwrap()]
-                .select_product_lot(&*self.qc_db),
-        );
+        let product =
+            &self.product_name_field.collection()[self.product_name_field.selection().unwrap()];
+        self.lot_name_field
+            .set_collection(product.select_product_lots(&*self.qc_db));
+        self.customer_name_field
+            .set_collection(product.select_customer_names(&*self.qc_db));
+        if self.customer_name_field.len() == 1 {
+            self.customer_name_field.set_selection(Some(0));
+        }
+        self.sample_name_field
+            .set_collection(product.select_sample_points(&*self.qc_db));
+
+        let qc = QCProduct::select_product_details(&*self.qc_db, product);
+        self.update_product(qc);
     }
 
     fn prod_inp(&self) {
@@ -317,20 +333,50 @@ impl QCApp {
         );
     }
 
+    fn update_product(&self, qc_product: QCProduct) {
+        // view.product_panel.UpdateProduct(QC_Product)
+        // for _, panel := range view.tab_panels {
+        self.product_wb.update_product(&qc_product);
+        self.product_ob.update_product(&qc_product);
+        self.product_fr.update_product(&qc_product);
+
+        // }
+
+        // fetch blend
+        //
+        // if QC_Product.Blend != nil {
+        // 	view.component_panel.UpdateBlend(QC_Product.Blend)
+        // 	return
+        // }
+
+        // var recipe_data blender.ProductRecipe
+        // // proc_name := "RecipeProduct.GetRecipes"
+        // proc_name := "FrictionReducerPanelView.GetRecipes"
+
+        // DB.Forall(proc_name,
+        // 	util.NOOP,
+        // 	func(row *sql.Rows) {
+        // 		if err := row.Scan(
+        // 			&recipe_data.Recipe_id,
+        // 		); err != nil {
+        // 			log.Fatal("Crit: [RecipeProduct GetRecipes]: ", proc_name, err)
+        // 		}
+        // 	},
+        // 	DB.DB_Select_product_recipe, QC_Product.Product_id)
+
+        // recipe_data.GetComponents()
+        // view.component_panel.UpdateRecipe(&recipe_data)
+        //    }
+    }
+
     fn resize_clock_box(&self) {
         let (w, h) = self.clock_frame.size();
         self.clock_box.set_size(w, h);
     }
 
-    fn do_rang(&self) {
-        self.product_wb.click();
-        self.product_ob.click();
-        self.product_fr.click();
-    }
+    fn do_rang(&self) {}
 
-    fn do_clcik(&self) {
-        self.customer_name_field.push("test")
-    }
+    fn do_clcik(&self) {}
 
     //     fn print_char(data: &nwg::EventData) {
     //     println!("{:?}", data.on_char());

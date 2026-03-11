@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 
 use nwd::NwgPartial;
 use nwg::{taffy::FlexDirection, ControlHandle, KeyPress, LabeledEdit, ModifierKeys, NONAME};
+use qc_data_entry::QCProduct;
 use qc_data_entry_derive::derive_mass;
 
 use crate::{
@@ -48,20 +49,16 @@ pub struct FRPanelView {
 }
 
 impl FRPanelView {
-    pub fn click(&self) {
-        println!("{}", self.product_top.click());
+    pub(crate) fn update_product(&self, qc_product: &QCProduct) -> () {
+        self.product_range.sg.set(&qc_product.sg);
         self.product_range
             .mass
-            .set(vec![Some(79.89), Some(88.01), Some(90.95)].into());
-        self.product_range
-            .sg
-            // .set(&(vec![None, Some(5.1), None]).into());
-            // .set(&vec![None, Some(5.1), None].into());
-            .set(vec![Some(0.1), Some(5.1), Some(0.1115)].into());
-        // .set(&vec![Some(0.1), Some(5.1), Some(0.1115)].into());
-        // .set(vec![None, Some(5.1), None].into());
-        // .set(*vec![None, Some(5.1), None].into());
+            .set_with_map(&qc_product.sg, qc_data_entry::convert::mass_from_sg);
+        self.product_range.density.set(&qc_product.density);
+        self.product_range.string_test.set(&qc_product.string_test);
+        self.product_range.viscosity.set(&qc_product.viscosity);
     }
+
     fn check_data_entry(
         &self,
         field: &FixedNumEdit,
@@ -97,7 +94,7 @@ impl FRPanelView {
         {
             self.product_range.viscosity.check(val)
         } else if handle == &self.product_top.string || handle == &self.product_btm.string {
-            self.product_range.string.check(val)
+            self.product_range.string_test.check(val)
         } else {
             false
         };
@@ -156,9 +153,6 @@ impl FRPanelView {
     }
 }
 
-const PT_10: nwg::taffy::LengthPercentageAuto = nwg::taffy::LengthPercentageAuto::length(10.0);
-const PT_35: nwg::taffy::LengthPercentageAuto = nwg::taffy::LengthPercentageAuto::length(35.0);
-
 #[derive_mass]
 #[derive(Default, NwgPartial)]
 #[nwg_shortcuts((visual, viscosity, mass, string)  [W, S, NumpadMinus, NumpadPlus]: [FRProductView::proc_nav_shortcut(SELF,EVT,HANDLE)])]
@@ -176,14 +170,6 @@ pub struct FRProductView {
     #[nwg_layout_item(layout: frame_layout)]
     viscosity: nwg::LabeledEdit,
 
-    // #[nwg_control(text: "Test", border_color:Some([0xfe,0,0]))]
-    // #[nwg_layout_item(layout: frame_layout, margin: taffy::Rect {
-    //     left: PT_10,
-    //     right: PT_10,
-    //     top: PT_35,
-    //     bottom: PT_10,
-    // })]
-    // test: nwg::Label,
     mass: FixedNumEdit,
 
     #[nwg_control(label: "String", number: true)]
@@ -281,7 +267,7 @@ pub struct FRRangesView {
 
     #[nwg_partial]
     #[nwg_layout_item(layout: frame_layout)]
-    string: RangeView,
+    string_test: RangeView,
 
     #[nwg_partial]
     #[nwg_layout_item(layout: frame_layout)]

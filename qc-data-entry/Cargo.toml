@@ -19,10 +19,12 @@ common_math = "0.3.0"
 config = "0.15.19"
 log = "0.4.29"
 log-result = { path = "../log-result" }
-rusqlite = "^0.37"
+# rusqlite = "^0.37"
+rusqlite = { path = "c:/Users/QC Lab/Documents/rust/rusqlite"}
 semver = "1.0.27"
 serde = { version = "1.0.228", features = ["derive"] }
-serde_rusqlite = "0.40.1"
+# serde_rusqlite = "0.41.1"
+serde_rusqlite = { path = "c:/Users/QC Lab/Documents/rust/serde_rusqlite"}
 simplelog = "^0.12.0"
 thiserror = "2.0.18"
 toml = "0.9.11"

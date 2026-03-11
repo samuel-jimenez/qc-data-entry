@@ -3,6 +3,7 @@ extern crate native_windows_derive as nwd;
 use log::error;
 use nwd::NwgPartial;
 use nwg::{taffy::FlexDirection, ControlHandle, EventData, KeyPress, Setters};
+use qc_data_entry::QCProduct;
 
 use crate::{
     constants::{COL_20, COL_30, COL_70, COL_80, GROUP_PADDING},
@@ -62,10 +63,15 @@ impl WBPanelView {
             .sg
             // .set(&(vec![None, Some(5.1), None]).into());
             // .set(&vec![None, Some(5.1), None].into());
-            .set(vec![Some(0.1), Some(5.1), Some(0.1115)].into());
+            .set(&Some(vec![Some(0.1), Some(5.1), Some(0.1115)].into()));
         // .set(&vec![Some(0.1), Some(5.1), Some(0.1115)].into());
         // .set(vec![None, Some(5.1), None].into());
         // .set(*vec![None, Some(5.1), None].into());
+    }
+
+    pub(crate) fn update_product(&self, qc_product: &QCProduct) -> () {
+        self.product_range.ph.set(&qc_product.ph);
+        self.product_range.sg.set(&qc_product.sg);
     }
 }
 
