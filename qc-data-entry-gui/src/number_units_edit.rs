@@ -257,6 +257,14 @@ impl NumberUnitsEdit {
     pub fn set_placeholder_text<'a>(&self, v: Option<&'a str>) {
         self.field.set_placeholder_text(v)
     }
+    pub fn parse(&self) -> Result<f32, std::num::ParseFloatError> {
+        let mut text = self.text();
+        text.retain(|c| match c {
+            '0'..='9' | '.' => true,
+            _ => false,
+        });
+        text.parse()
+    }
 }
 
 #[derive(Setters)]

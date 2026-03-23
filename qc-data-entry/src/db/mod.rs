@@ -14,5 +14,5 @@ pub use product::ProductLine;
 pub use product_customer_line::ProductCustomerName;
 pub use product_lot::ProductLot;
 pub use product_sample_points::SamplePoint;
-pub use qc_product::QCProduct;
+pub use qc_product::QCProductStandard;
 pub use qc_tester_list::QcTesterList;

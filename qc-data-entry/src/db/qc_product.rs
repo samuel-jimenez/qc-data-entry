@@ -7,7 +7,7 @@ use crate::{ProductLine, Range, DB};
 
 // QC standard
 #[derive(Deserialize, Debug, Default)]
-pub struct QCProduct {
+pub struct QCProductStandard {
     // product_id: u32,
     // ph: Range,
     pub ph: Option<Range>,
@@ -36,7 +36,7 @@ pub struct QCProduct {
 //         // )
 //     }
 // }
-impl QCProduct {
+impl QCProductStandard {
     pub fn select_product_details(db: &DB, product: &ProductLine) -> Self {
         let qc_test_type_id_ph = 2;
         let qc_test_type_id_sg = 3;

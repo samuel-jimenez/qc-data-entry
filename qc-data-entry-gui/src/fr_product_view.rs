@@ -3,8 +3,10 @@ extern crate native_windows_derive as nwd;
 use std::cmp::Ordering;
 
 use nwd::NwgPartial;
-use nwg::{taffy::FlexDirection, ControlHandle, KeyPress, LabeledEdit, ModifierKeys, NONAME};
-use qc_data_entry::QCProduct;
+use nwg::{
+    taffy::FlexDirection, CheckBoxState, ControlHandle, KeyPress, LabeledEdit, ModifierKeys, NONAME,
+};
+use qc_data_entry::{QCProductStandard, SampledProduct};
 use qc_data_entry_derive::derive_mass;
 
 use crate::{
@@ -27,8 +29,8 @@ pub struct FRPanelView {
     #[nwg_layout_item(layout: frame_layout, size:COL_40)]
     group_top: nwg::GroupBox,
     #[nwg_partial(parent: group_top)]
-    #[nwg_shortcuts((visual, viscosity, mass, string)  [A, D, NumpadSlash, NumpadTimes]: [FRPanelView::proc_nav_shortcut(SELF,EVT,HANDLE)])]
-    #[nwg_events((mass) OnTextInput: [FRPanelView::check_data_entry(SELF,TARGET,HANDLE)],(viscosity, string) OnTextInput: [FRPanelView::check_data_entry_int(SELF,TARGET,HANDLE)])]
+    #[nwg_shortcuts((visual, viscosity, mass, string_test)  [A, D, NumpadSlash, NumpadTimes]: [FRPanelView::proc_nav_shortcut(SELF,EVT,HANDLE)])]
+    #[nwg_events((mass) OnTextInput: [FRPanelView::check_data_entry(SELF,TARGET,HANDLE)],(viscosity, string_test) OnTextInput: [FRPanelView::check_data_entry_int(SELF,TARGET,HANDLE)])]
     product_top: FRProductView,
 
     #[nwg_control(text: "Btm")]
@@ -36,8 +38,8 @@ pub struct FRPanelView {
     #[nwg_layout_item(layout: frame_layout, size:COL_40)]
     group_btm: nwg::GroupBox,
     #[nwg_partial(parent: group_btm)]
-    #[nwg_shortcuts((visual, viscosity, mass, string)  [A, D, NumpadSlash, NumpadTimes]: [FRPanelView::proc_nav_shortcut(SELF,EVT,HANDLE)])]
-    #[nwg_events((mass) OnTextInput: [FRPanelView::check_data_entry(SELF,TARGET,HANDLE)],(viscosity, string) OnTextInput: [FRPanelView::check_data_entry_int(SELF,TARGET,HANDLE)])]
+    #[nwg_shortcuts((visual, viscosity, mass, string_test)  [A, D, NumpadSlash, NumpadTimes]: [FRPanelView::proc_nav_shortcut(SELF,EVT,HANDLE)])]
+    #[nwg_events((mass) OnTextInput: [FRPanelView::check_data_entry(SELF,TARGET,HANDLE)],(viscosity, string_test) OnTextInput: [FRPanelView::check_data_entry_int(SELF,TARGET,HANDLE)])]
     product_btm: FRProductView,
 
     #[nwg_control]
@@ -49,7 +51,7 @@ pub struct FRPanelView {
 }
 
 impl FRPanelView {
-    pub(crate) fn update_product(&self, qc_product: &QCProduct) -> () {
+    pub(crate) fn update_product(&self, qc_product: &QCProductStandard) -> () {
         self.product_range.sg.set(&qc_product.sg);
         self.product_range
             .mass
@@ -93,7 +95,8 @@ impl FRPanelView {
         let ok_p = if handle == &self.product_top.viscosity || handle == &self.product_btm.viscosity
         {
             self.product_range.viscosity.check(val)
-        } else if handle == &self.product_top.string || handle == &self.product_btm.string {
+        } else if handle == &self.product_top.string_test || handle == &self.product_btm.string_test
+        {
             self.product_range.string_test.check(val)
         } else {
             false
@@ -124,8 +127,10 @@ impl FRPanelView {
                     self.product_top.viscosity.set_focus()
                 } else if handle == &self.product_top.mass || handle == &self.product_btm.mass {
                     self.product_top.mass.set_focus()
-                } else if handle == &self.product_top.string || handle == &self.product_btm.string {
-                    self.product_top.string.set_focus()
+                } else if handle == &self.product_top.string_test
+                    || handle == &self.product_btm.string_test
+                {
+                    self.product_top.string_test.set_focus()
                 }
             }
             nwg::KeyCombo {
@@ -143,19 +148,42 @@ impl FRPanelView {
                     self.product_btm.viscosity.set_focus()
                 } else if handle == &self.product_top.mass || handle == &self.product_btm.mass {
                     self.product_btm.mass.set_focus()
-                } else if handle == &self.product_top.string || handle == &self.product_btm.string {
-                    self.product_btm.string.set_focus()
+                } else if handle == &self.product_top.string_test
+                    || handle == &self.product_btm.string_test
+                {
+                    self.product_btm.string_test.set_focus()
                 }
             }
             _ => {}
         }
         println!("woo");
     }
+
+    pub(crate) fn get_samples(
+        &self,
+        sample_info: qc_data_entry::SampleInfo,
+    ) -> Vec<qc_data_entry::SampledProduct> {
+        let mut sample_top: SampledProduct = sample_info.clone().into();
+        sample_top.visual = self.product_top.visual.check_state() == CheckBoxState::Checked;
+        sample_top.sg = self.product_top.sg.parse().ok();
+        sample_top.density = self.product_top.density.parse().ok();
+        sample_top.string_test = self.product_top.string_test.text().parse().ok();
+        sample_top.viscosity = self.product_top.viscosity.text().parse().ok();
+
+        let mut sample_btm: SampledProduct = sample_info.into();
+        sample_btm.visual = self.product_btm.visual.check_state() == CheckBoxState::Checked;
+        sample_btm.sg = self.product_btm.sg.parse().ok();
+        sample_btm.density = self.product_btm.density.parse().ok();
+        sample_btm.string_test = self.product_btm.string_test.text().parse().ok();
+        sample_btm.viscosity = self.product_btm.viscosity.text().parse().ok();
+
+        vec![sample_top, sample_btm]
+    }
 }
 
 #[derive_mass]
 #[derive(Default, NwgPartial)]
-#[nwg_shortcuts((visual, viscosity, mass, string)  [W, S, NumpadMinus, NumpadPlus]: [FRProductView::proc_nav_shortcut(SELF,EVT,HANDLE)])]
+#[nwg_shortcuts((visual, viscosity, mass, string_test)  [W, S, NumpadMinus, NumpadPlus]: [FRProductView::proc_nav_shortcut(SELF,EVT,HANDLE)])]
 pub struct FRProductView {
     // Layout
     #[nwg_layout(flex_direction: FlexDirection::Column, padding:GROUP_PADDING)]
@@ -174,7 +202,7 @@ pub struct FRProductView {
 
     #[nwg_control(label: "String", number: true)]
     #[nwg_layout_item(layout: frame_layout)]
-    string: nwg::LabeledEdit,
+    string_test: nwg::LabeledEdit,
 }
 
 // filter u8
@@ -212,7 +240,7 @@ impl FRProductView {
                     self.visual.set_focus()
                 } else if handle == &self.mass {
                     self.viscosity.set_focus()
-                } else if handle == &self.string {
+                } else if handle == &self.string_test {
                     self.mass.set_focus()
                 }
             }
@@ -228,9 +256,9 @@ impl FRProductView {
                 } else if handle == &self.viscosity {
                     self.mass.set_focus()
                 } else if handle == &self.mass {
-                    self.string.set_focus()
-                } else if handle == &self.string {
-                    self.string.set_focus()
+                    self.string_test.set_focus()
+                } else if handle == &self.string_test {
+                    self.string_test.set_focus()
                 }
             }
             _ => {}

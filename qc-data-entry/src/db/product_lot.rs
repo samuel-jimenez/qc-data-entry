@@ -7,7 +7,7 @@ use serde_rusqlite::from_rows;
 // use crate::errors::Result;
 use crate::DB;
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Clone, Deserialize, Debug, Default)]
 pub struct ProductLot {
     product_lot_id: u32,
     lot_name: String,

@@ -3,7 +3,7 @@ extern crate native_windows_derive as nwd;
 use log::error;
 use nwd::NwgPartial;
 use nwg::{taffy::FlexDirection, ControlHandle, EventData, KeyPress, Setters};
-use qc_data_entry::QCProduct;
+use qc_data_entry::{QCProductStandard, SampleInfo, SampledProduct};
 
 use crate::{
     constants::{COL_20, COL_30, COL_70, COL_80, GROUP_PADDING},
@@ -69,9 +69,18 @@ impl WBPanelView {
         // .set(*vec![None, Some(5.1), None].into());
     }
 
-    pub(crate) fn update_product(&self, qc_product: &QCProduct) -> () {
+    pub(crate) fn update_product(&self, qc_product: &QCProductStandard) -> () {
         self.product_range.ph.set(&qc_product.ph);
         self.product_range.sg.set(&qc_product.sg);
+    }
+
+    pub(crate) fn get_samples(&self, sample_info: SampleInfo) -> Vec<SampledProduct> {
+        let mut sample: SampledProduct = sample_info.into();
+        sample.visual = self.product_wb.visual.check_state() == nwg::CheckBoxState::Checked;
+
+        sample.ph = self.product_wb.ph.parse().ok();
+        sample.sg = self.product_wb.sg.parse().ok();
+        vec![sample]
     }
 }
 

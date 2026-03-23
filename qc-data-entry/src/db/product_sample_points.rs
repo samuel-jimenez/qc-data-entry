@@ -5,7 +5,7 @@ use serde_rusqlite::from_rows;
 
 use crate::DB;
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Clone, Deserialize, Debug, Default)]
 pub struct SamplePoint {
     sample_point_id: u32,
     sample_point: String,

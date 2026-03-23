@@ -32,6 +32,7 @@ qc-data-entry-derive = { path = "../qc-data-entry-derive" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 simplelog = "^0.12.0"
+thiserror = "2.0.18"
 toml = "0.9.11"
 winapi = { version = "0.3.9", features = ["winuser"] }
 

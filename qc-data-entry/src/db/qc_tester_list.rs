@@ -7,7 +7,7 @@ use serde_rusqlite::from_rows;
 // use crate::errors::Result;
 use crate::DB;
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Clone, Deserialize, Debug, Default)]
 pub struct QcTesterList {
     qc_tester_id: u32,
     qc_tester_name: String,

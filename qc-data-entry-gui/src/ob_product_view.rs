@@ -1,8 +1,8 @@
 extern crate native_windows_derive as nwd;
 
 use nwd::NwgPartial;
-use nwg::{taffy::FlexDirection, ControlHandle, KeyPress, ModifierKeys};
-use qc_data_entry::QCProduct;
+use nwg::{taffy::FlexDirection, CheckBoxState, ControlHandle, KeyPress, ModifierKeys};
+use qc_data_entry::{QCProductStandard, SampledProduct};
 use qc_data_entry_derive::derive_mass;
 
 use crate::{
@@ -56,12 +56,22 @@ impl OBPanelView {
         Ok(())
     }
 
-    pub(crate) fn update_product(&self, qc_product: &QCProduct) -> () {
+    pub(crate) fn update_product(&self, qc_product: &QCProductStandard) -> () {
         self.product_range.sg.set(&qc_product.sg);
         self.product_range
             .mass
             .set_with_map(&qc_product.sg, qc_data_entry::convert::mass_from_sg);
         self.product_range.density.set(&qc_product.density);
+    }
+
+    pub(crate) fn get_samples(
+        &self,
+        sample_info: qc_data_entry::SampleInfo,
+    ) -> Vec<qc_data_entry::SampledProduct> {
+        let mut sample: SampledProduct = sample_info.into();
+        sample.visual = self.product_wb.visual.check_state() == CheckBoxState::Checked;
+        sample.sg = self.product_wb.sg.parse().ok();
+        vec![sample]
     }
 }
 

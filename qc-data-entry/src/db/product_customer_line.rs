@@ -5,7 +5,7 @@ use serde_rusqlite::from_rows;
 
 use crate::DB;
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Clone, Deserialize, Debug, Default)]
 pub struct ProductCustomerName {
     product_customer_id: u32,
     product_name_customer: String,

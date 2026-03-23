@@ -13,6 +13,7 @@ extern crate native_windows_derive as nwd;
 
 mod clock;
 mod constants;
+mod errors;
 mod fr_product_view;
 mod number_edit_fixed;
 mod number_units_edit;
@@ -36,13 +37,20 @@ use nwg::{
     NativeUi, ShortcutUi,
 };
 use qc_data_entry::{
-    init_logger, DataEntryConfig, LotList, ProductCustomerName, ProductLine, ProductLot, QCProduct,
-    QcTesterList, SamplePoint, DB,
+    init_logger, DataEntryConfig, LotList, ProductCustomerName, ProductLine, ProductLot,
+    QCProductStandard, QcTesterList, SampleInfo, SamplePoint, SampledProduct, DB,
 };
 
 use crate::{
-    clock::ClockBox, constants::*, fr_product_view::FRPanelView,
-    number_units_edit::NumberUnitsEdit, ob_product_view::OBPanelView, qr::QRJson, range::*,
+    clock::ClockBox,
+    constants::*,
+    errors::Error,
+    // errors::{Error, Result},
+    fr_product_view::FRPanelView,
+    number_units_edit::NumberUnitsEdit,
+    ob_product_view::OBPanelView,
+    qr::QRJson,
+    range::*,
     wb_product_view::WBPanelView,
 };
 
@@ -209,6 +217,7 @@ pub struct QCApp {
 
     #[nwg_control(parent: window, text: "Submit")]
     #[nwg_layout_item(layout: action_button_layout)]
+    #[nwg_events( OnButtonClick:[QCApp::submit_sample])]
     submit_button: nwg::Button,
 
     #[nwg_control(parent: window, text: "Clear")]
@@ -217,6 +226,7 @@ pub struct QCApp {
 
     #[nwg_control(parent: window, text: "Log")]
     #[nwg_layout_item(layout: action_button_layout)]
+    #[nwg_events( OnButtonClick:[QCApp::log_sample])]
     log_button: nwg::Button,
 
     #[nwg_partial(parent: panel_wb)]
@@ -312,6 +322,7 @@ impl QCApp {
     fn prod_sel(&self) {
         let product =
             &self.product_name_field.collection()[self.product_name_field.selection().unwrap()];
+        self.window.set_text(&product.to_string());
         self.lot_name_field
             .set_collection(product.select_product_lots(&*self.qc_db));
         self.customer_name_field
@@ -322,7 +333,7 @@ impl QCApp {
         self.sample_name_field
             .set_collection(product.select_sample_points(&*self.qc_db));
 
-        let qc = QCProduct::select_product_details(&*self.qc_db, product);
+        let qc = QCProductStandard::select_product_details(&*self.qc_db, product);
         self.update_product(qc);
     }
 
@@ -333,7 +344,7 @@ impl QCApp {
         );
     }
 
-    fn update_product(&self, qc_product: QCProduct) {
+    fn update_product(&self, qc_product: QCProductStandard) {
         // view.product_panel.UpdateProduct(QC_Product)
         // for _, panel := range view.tab_panels {
         self.product_wb.update_product(&qc_product);
@@ -341,6 +352,8 @@ impl QCApp {
         self.product_fr.update_product(&qc_product);
 
         // }
+
+        // self.tabs_container.set_selected_tab()
 
         // fetch blend
         //
@@ -372,6 +385,148 @@ impl QCApp {
     fn resize_clock_box(&self) {
         let (w, h) = self.clock_frame.size();
         self.clock_box.set_size(w, h);
+    }
+    fn get_sample_info(&self) -> errors::Result<SampleInfo> {
+        // let product = &
+        Ok(SampleInfo {
+            product_name: self
+                .product_name_field
+                .selection()
+                .map(|i| self.product_name_field.collection()[i].clone())
+                .ok_or(Error::MissingProduct)?,
+            lot_name: self
+                .lot_name_field
+                .selection()
+                .map(|i| self.lot_name_field.collection()[i].clone())
+                .ok_or(Error::MissingLot)?,
+            tester_name: self
+                .tester_name_field
+                .selection()
+                .map(|i| self.tester_name_field.collection()[i].clone())
+                .ok_or(Error::MissingTester)?,
+            customer_name: self
+                .customer_name_field
+                .selection()
+                .map(|i| self.customer_name_field.collection()[i].clone()),
+            sample_name: self
+                .sample_name_field
+                .selection()
+                .map(|i| self.sample_name_field.collection()[i].clone()),
+        })
+    }
+
+    fn clear_error(&self) {
+        self.product_name_field.set_border_color(None);
+        self.lot_name_field.set_border_color(None);
+        self.tester_name_field.set_border_color(None);
+    }
+    fn check_sample_info(&self, sample_info: errors::Result<SampleInfo>) -> Option<SampleInfo> {
+        self.clear_error();
+        match self.get_sample_info() {
+            Ok(sample_info) => Some(sample_info),
+            Err(Error::MissingProduct) => {
+                self.product_name_field.set_border_color(Some([0xff, 0, 0]));
+                None
+            }
+            Err(Error::MissingLot) => {
+                self.lot_name_field.set_border_color(Some([0xff, 0, 0]));
+                None
+            }
+            Err(Error::MissingTester) => {
+                self.tester_name_field.set_border_color(Some([0xff, 0, 0]));
+                None
+            }
+            Err(_) => unreachable!(),
+        }
+    }
+
+    fn get_samples(&self) -> Vec<SampledProduct> {
+        // 0 => self.product_wb.(sample_info),
+
+        //       	measured_product := view.group_panel.Get(view.product_panel.BaseProduct())
+        // valid, err := product.Check_single_data(measured_product, true, true)
+        // if valid {
+        // 	view.product_panel.SetMeasuredProduct(measured_product)
+        // }
+        // qc_ui.Check_dupe_data(view, err, true, measured_product)
+        // let lot_info = self.get();
+        //
+        //
+        let maybe_sample_info = self.check_sample_info(self.get_sample_info());
+        if maybe_sample_info.is_none() {
+            return vec![];
+        }
+        let sample_info = maybe_sample_info.unwrap();
+
+        //
+        // let sample_info = match self.check_sample_info(self.get_sample_info()) {
+        //     Some(_) => todo!(),
+        //     None => vec!(),
+        // };
+        // ()?,
+        // lot_name: self.            lot_name_field.selection().map(|i| self.            lot_name_field.collection()[i]).ok_or(Error::MissingLot)?,
+        // tester_name: self.            tester_name_field.selection().map(|i| self.            tester_name_field.collection()[i]).ok_or(Error::MissingTester)?,
+        // // self.product_wb.update_product(&qc_product);
+        //        self.product_ob.update_product(&qc_product);
+        //        self.product_fr.update_product(&qc_product);
+        //
+        match self.tabs_container.selected_tab() {
+            // 0 => println!("waterwater"),
+            // 0 => self.product_wb.get_sample(lot_info),
+            0 => self.product_wb.get_samples(sample_info),
+            1 => self.product_ob.get_samples(sample_info),
+            // 1 => println!("ooooouuuuuuuiiiiiiiuuuullllllll"),
+            // 2 => println!("fr"),
+            _ => unreachable!(),
+        }
+    }
+
+    fn submit_sample(&self) {
+        let sampled_products = self.get_samples();
+
+        println!("sampled_products {:?}", sampled_products);
+        let sampled_products = match sampled_products.len() {
+            0 => {}
+            1 => sampled_products[0].check_sample_single(),
+            2 => SampledProduct::check_sample_double(sampled_products),
+            _ => unreachable!(),
+        };
+        //
+        // test
+        // 0 => self.product_wb.(sample_info),
+
+        //       	measured_product := view.group_panel.Get(view.product_panel.BaseProduct())
+        // valid, err := product.Check_single_data(measured_product, true, true)
+        // if valid {
+        // 	view.product_panel.SetMeasuredProduct(measured_product)
+        // }
+        // qc_ui.Check_dupe_data(view, err, true, measured_product)
+        // let lot_info = self.get();
+        // let sample_info = self.get();
+
+        // // self.product_wb.update_product(&qc_product);
+        // //        self.product_ob.update_product(&qc_product);
+        // //        self.product_fr.update_product(&qc_product);
+        // //
+        // let sampled_products = match self.tabs_container.selected_tab() {
+        //     // 0 => println!("waterwater"),
+        //     // 0 => self.product_wb.get_sample(lot_info),
+        //     0 => self.product_wb.get_samples(sample_info),
+        //     // 1 => println!("ooooouuuuuuuiiiiiiiuuuullllllll"),
+        //     // 2 => println!("fr"),
+        //     _ => unreachable!(),
+        // };
+    }
+
+    fn log_sample(&self) {
+        println!("log_sample");
+
+        match self.tabs_container.selected_tab() {
+            0 => println!("waterwater"),
+            1 => println!("ooooouuuuuuuiiiiiiiuuuullllllll"),
+            2 => println!("fr"),
+            _ => unreachable!(),
+        }
     }
 
     fn do_rang(&self) {}

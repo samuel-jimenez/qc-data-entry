@@ -5,6 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "run",
+            "type": "lldb",
+            "request": "launch",
+            "program": "C:/Users/QC Lab/Downloads/gram-1.0.1-test_18-x86_64-pc-windows-msvc/gram.exe",
+            "args": []
+        },
+        {
+            "name": "run-16",
+            "type": "lldb",
+            "request": "launch",
+            "program": "C:/Users/QC Lab/Downloads/gram-1.0.1-test_16-x86_64-pc-windows-msvc/gram.exe",
+            "args": []
+        },
+        {
             "name": "gui",
             "type": "lldb",
             "request": "launch",
